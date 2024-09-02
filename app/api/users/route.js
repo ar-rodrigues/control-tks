@@ -54,7 +54,7 @@ export async function POST(request) {
                         \n\nYour login details are:
                         \nEmail: ${email}
                         \nPassword: ${password}
-                        \n\nPlease confirm your email by clicking the following link:\n${"link"}
+                        \n\nPlease confirm your email by clicking the following link:\n${process.env.EMAIL_CONFIRM_URL}
                         \n\nThank you!
                       `
     await sendEmail(email, name, password, emailSubject, emailBody);
