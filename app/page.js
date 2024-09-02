@@ -1,24 +1,31 @@
-'use client'
-import { Link } from '@chakra-ui/next-js'
-import { supabase } from './lib/supabase'
+import { redirect } from 'next/navigation';
+import { checkUserRole } from './actions/actions';
+import LogoutButton from './components/logout/LogoutButton';
+import { AdminPanel } from './components/admin/AdminPanel';
+import { DecryptorDropzone } from './components/Decryptor/DecryptorDropzone'
 
-export default function Home() {
-  const setNewView = async () => {
-    const {data, error} = await supabase
-    .from('views')
-    .insert({
-      name: 'Home'
-    })
-    if(data) console.log(data)
-    if(error) console.log(error)
-  }
+export default async function Home() {
+  const { role, email } = await checkUserRole();
+  
 
-  setNewView()
+  if (!role) {
+    redirect('/login');
+}
+
+
   return (
     <main className="flex flex-col items-center justify-between min-h-screen p-24">
-      <Link href='/about' color='blue.400' _hover={{ color: 'blue.500' }}>
-      Hello World!
-    </Link>
+      <h1 color='blue.400' _hover={{ color: 'blue.500' }}>
+        Hello {email}! You have access to the {role} dashboard.
+      </h1>
+      {
+        role === 'admin' && <AdminPanel />
+      }
+
+      {
+        role === 'back-office' && <DecryptorDropzone />
+      }      
+      <LogoutButton /> {/* Client component for logout */}
     </main>
   );
 }
