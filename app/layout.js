@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { metadata as siteMetadata } from "./metadata";
+import { Providers } from './providers'
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,7 +17,11 @@ export default function RootLayout({ children }) {
         <meta name="description" content={siteMetadata.description} />
         {/* Add other meta tags from siteMetadata as needed */}
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <Providers>
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }
