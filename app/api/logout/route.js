@@ -5,5 +5,5 @@ export async function POST() {
   const supabase = createClient();
   await supabase.auth.signOut();
 
-  return NextResponse.redirect(new URL('/login', 'http://localhost:3000').toString());
+  return NextResponse.redirect(new URL('/login', process.env.EMAIL_CONFIRM_URL).toString());
 }
