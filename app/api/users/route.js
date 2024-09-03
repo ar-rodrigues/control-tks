@@ -54,7 +54,7 @@ export async function POST(request) {
                         \n\nYour login details are:
                         \nEmail: ${email}
                         \nPassword: ${password}
-                        \n\nPlease confirm your email by clicking the following link:\n${"link"}
+                        \n\nPlease confirm your email by clicking the following link:\n${process.env.EMAIL_CONFIRM_URL}
                         \n\nThank you!
                       `
     await sendEmail(email, name, password, emailSubject, emailBody);
@@ -67,15 +67,3 @@ export async function POST(request) {
 }
 
 
-
-
-// PUT /api/users/:id
-export async function PUT(request, { params }) {
-  const supabase = createClient();
-  const updatedUser = await request.json();
-
-  const { data, error } = await supabase.from('users').update(updatedUser).eq('id', params.id);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data[0]);
-}
