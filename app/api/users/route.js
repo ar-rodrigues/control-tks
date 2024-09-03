@@ -46,6 +46,8 @@ export async function POST(request) {
     return NextResponse.json({ error: profileError.message }, { status: 500 });
   }
 
+  const url = new URL(request.url);
+  const baseUrl = `${url.protocol}//${url.host}`;
 
   // Send email
   try {
@@ -54,7 +56,7 @@ export async function POST(request) {
                         \n\nYour login details are:
                         \nEmail: ${email}
                         \nPassword: ${password}
-                        \n\nPlease confirm your email by clicking the following link:\n${process.env.EMAIL_CONFIRM_URL}
+                        \n\nPlease confirm your email by clicking the following link:\n${baseUrl}
                         \n\nThank you!
                       `
     await sendEmail(email, name, password, emailSubject, emailBody);
