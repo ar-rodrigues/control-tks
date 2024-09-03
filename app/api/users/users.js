@@ -17,6 +17,8 @@ export async function fetchUsers() {
   }
   
   export async function updateUser(id, updatedUser) {
+    console.log("updateUser function: ", updatedUser)
+    console.log("updateuser function id: ", id)
     const response = await fetch(`/api/users/${id}`, {
       method: 'PUT',
       headers: {

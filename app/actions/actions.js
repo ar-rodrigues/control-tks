@@ -9,16 +9,25 @@ export async function login(formData) {
   const supabase = createClient();
   const { email, password } = formData;
 
-  // Sign in with email and password
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  try {
+    // Sign in with email and password
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    throw new Error('Login failed: ' + error.message); // Handle errors properly
+    if (error) {
+      // Handle errors gracefully without throwing
+      console.error('Login failed:', error.message);
+      return { success: false, message: 'Invalid login credentials' };
+    }
+
+    return { success: true, message: 'Login successful' };
+
+  } catch (err) {
+    // Handle unexpected errors
+    console.error('Unexpected error during login:', err);
+    return { success: false, message: 'An unexpected error occurred' };
   }
-
-  // Optionally handle successful login, such as redirecting
-  redirect('/');
 }
+
 
 export async function signup(formData) {
   const supabase = createClient();
@@ -61,19 +70,28 @@ export async function checkUserRole() {
   const supabase = createClient();
   const { user, email } = await custom_access_token_hook();
 
+  console.log('User ID:', user);
+  console.log('User Email:', email);
+
+  // Fetch the user's role from the profiles table using the correct relationship
   const { data, error } = await supabase
-        .from('user_roles')
-        .select(`
-            roles:role_id(role_name)
-        `)
-        .eq('user_id', user)
-        .single();
+    .from('profiles')
+    .select(`
+      roles:roles!profiles_roles_fkey(role_name)
+    `)
+    .eq('id', user)
+    .single();
 
-    if (error || !data) {
-        return { hasAccess: false, role: null, email };
-    }
+  if (error || !data) {
+    console.error('Error fetching user role:', error || 'No data returned');
+    return { hasAccess: false, role: null, email };
+  }
 
-    return { hasAccess: true, role: data.roles.role_name, email };
+  console.log('User Role:', data.roles);
+
+  return { hasAccess: true, role: data.roles.role_name, email };
 }
+
+
 
 

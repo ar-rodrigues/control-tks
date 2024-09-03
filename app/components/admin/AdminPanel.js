@@ -6,22 +6,24 @@ import { fetchUsers, deleteUser, updateUser, createUser } from '../../api/users/
 import { UserTable } from './UserTable';
 import { AddUserModal } from './AddUserModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { PasswordModal } from './PasswordModal';
+import { fetchRoles } from '../../api/roles/roles';
 
 export function AdminPanel() {
   const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true)
+  const [roles, setRoles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [editUserId, setEditUserId] = useState(null);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: '' });
   const [isAddModalOpen, setAddModalOpen] = useState(false);
+  const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState(null);
   const [error, setError] = useState(null);
 
-
   useEffect(() => {
-    fetchUsers()
-      .then(setUsers)
-      .finally(()=> setIsLoading(false));
+    fetchUsers().then(setUsers).finally(() => setIsLoading(false));
+    fetchRoles().then(setRoles); // Fetch roles once
   }, []);
 
   const handleDelete = async (id) => {
@@ -31,63 +33,76 @@ export function AdminPanel() {
 
   const handleDeleteConfirmed = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       await deleteUser(deleteUserId);
     } catch (error) {
-      console.error('Failed to delete user:', error.message)
+      console.error('Failed to delete user:', error.message);
     } finally {
       setDeleteUserId(null);
-      setIsLoading(false)
+      setIsLoading(false);
       setDeleteModalOpen(false);
       await fetchUsers().then(setUsers); // Fetch the latest users
     }
   };
 
-  const handleEdit = (id, name, email, role) => {
+  const handleEdit = (id, name, email, roleName) => {
+    const role = roles.find((role) => role.role_name === roleName)?.id;
     setEditUserId(id);
     setNewUser({ name, email, role });
   };
 
-  const handleSave = async (id) => {
-    await updateUser(id, newUser);
-    setUsers(users.map(user => user.id === id ? { ...user, ...newUser } : user));
-    setEditUserId(null);
+  const handleSave = async (id, user = newUser) => {
+    try {
+      await updateUser(id, user);
+      setUsers(users.map((u) => (u.id === id ? { ...u, ...user } : u)));
+    } catch (error) {
+      console.error('Failed to update user:', error.message);
+    } finally {
+      setEditUserId(null);
+      await fetchUsers().then(setUsers);
+    }
   };
 
   const handleAdd = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       await createUser(newUser);
-      setNewUser({ name: '', email: '', password: '', role: '' });
+      setNewUser({ name: '', email: '', role: '' });
     } catch (error) {
       if (error.message === 'Email already exists') {
         setError('Correo ya registrado.');
-      setTimeout(()=>{
-        setError(null)
-      }, 3000)
+        setTimeout(() => {
+          setError(null);
+        }, 3000);
       } else {
         console.error('Failed to add user:', error.message);
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
       setAddModalOpen(false);
       await fetchUsers().then(setUsers); // Fetch the latest users
     }
   };
 
+  const handlePasswordUpdate = async (id, newPassword) => {
+    try {
+      setIsLoading(true);
+      await updateUser(id, { password: newPassword });
+      setUsers(users.map((u) => (u.id === id ? { ...u, password: newPassword } : u)));
+    } catch (error) {
+      console.error('Failed to update password:', error.message);
+    } finally {
+      setIsLoading(false);
+      setPasswordModalOpen(false);
+      setEditUserId(null);
+    }
+  };
+
   return (
     <Box>
-      {
-        isLoading && !isAddModalOpen && !isDeleteModalOpen ? (
-          <Spinner 
-            thickness='4px'
-            speed='0.65s'
-            emptyColor='gray.200'
-            color='blue.500'
-            size='xl'
-          />
-        ) :
-        (
+      {isLoading && !isAddModalOpen && !isDeleteModalOpen && !isPasswordModalOpen ? (
+        <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
+      ) : (
         <>
           <Button onClick={() => setAddModalOpen(true)} colorScheme="blue" mb={4}>
             Add User
@@ -101,6 +116,11 @@ export function AdminPanel() {
             handleSave={handleSave}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
+            handlePasswordChange={(id) => {
+              setEditUserId(id);
+              setPasswordModalOpen(!isDeleteModalOpen);
+            }}
+            roles={roles}
           />
           <AddUserModal
             isOpen={isAddModalOpen}
@@ -110,6 +130,7 @@ export function AdminPanel() {
             handleAdd={handleAdd}
             error={error}
             isLoading={isLoading}
+            roles={roles}
           />
           <DeleteConfirmationModal
             isOpen={isDeleteModalOpen}
@@ -117,9 +138,17 @@ export function AdminPanel() {
             handleDeleteConfirmed={handleDeleteConfirmed}
             isLoading={isLoading}
           />
+          {editUserId && (
+            <PasswordModal
+            isOpen={isPasswordModalOpen}
+            onClose={() => setPasswordModalOpen(false)} 
+            userId={editUserId}
+            onPasswordChange={handlePasswordUpdate}
+            isLoading={isLoading}
+          />
+          )}
         </>
-      )
-      }
+      )}
     </Box>
   );
 }

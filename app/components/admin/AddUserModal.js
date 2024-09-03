@@ -1,23 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button, Input, Select, InputGroup, InputRightElement, IconButton, Text, Spinner } from '@chakra-ui/react';
 import { fetchRoles } from '../../api/roles/roles';
 import { FaEye, FaEyeSlash,FaKey  } from 'react-icons/fa';
 import { generateRandomPassword } from '../../utils/passwordGenerator'
-import { useValidateAddUser } from '../../utils/validations/validateAddUser';
+import { useValidateUser } from '../../utils/validations/useValidateUser';
 
 
-export function AddUserModal({ isOpen, onClose, newUser, setNewUser, handleAdd, error, isLoading }) {
-  const [roles, setRoles] = useState([]);
+export function AddUserModal({ isOpen, onClose, newUser, setNewUser, handleAdd, error, isLoading, roles }) {
   const [showPassword, setShowPassword] = useState(false) 
-  const { errorMessage, validate } = useValidateAddUser(newUser); 
-
-  useEffect(() => {
-    const getRoles = async () => {
-      const fetchedRoles = await fetchRoles();
-      setRoles(fetchedRoles);
-    };
-    getRoles();
-  }, []);
+  const { errorMessage, validate } = useValidateUser(newUser); 
 
   const handleGeneratePassword = () => {
     const password = generateRandomPassword();
@@ -42,13 +33,13 @@ export function AddUserModal({ isOpen, onClose, newUser, setNewUser, handleAdd, 
         <ModalBody>
           <Input
             placeholder="Name"
-            value={newUser.name}
+            value={newUser?.name}
             onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
             mb={4}
           />
           <Input
             placeholder="Email"
-            value={newUser.email}
+            value={newUser?.email}
             onChange={(e) => setNewUser({ ...newUser, email: e.target.value.trim() })}
             mb={4}
           />
@@ -57,7 +48,7 @@ export function AddUserModal({ isOpen, onClose, newUser, setNewUser, handleAdd, 
               pr="4.5rem"
               type={showPassword ? "text" : "password"}
               placeholder="Password"
-              value={newUser.password}
+              value={newUser?.password}
               onChange={(e) => setNewUser({ ...newUser, password: e.target.value.trim() })}
             />
             <InputRightElement width="4.5rem">
@@ -78,7 +69,7 @@ export function AddUserModal({ isOpen, onClose, newUser, setNewUser, handleAdd, 
           </InputGroup>
           <Select
             placeholder="Select role"
-            value={newUser.role}
+            value={newUser?.role}
             onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
           >
             {roles.map(role => (
