@@ -70,8 +70,8 @@ export async function checkUserRole() {
   const supabase = createClient();
   const { user, email } = await custom_access_token_hook();
 
-  console.log('User ID:', user);
-  console.log('User Email:', email);
+  //console.log('User ID:', user);
+  //console.log('User Email:', email);
 
   // Fetch the user's role from the profiles table using the correct relationship
   const { data, error } = await supabase
@@ -81,6 +81,8 @@ export async function checkUserRole() {
     `)
     .eq('id', user)
     .single();
+
+  console.log("checkUserRole function data: ",data)
 
   if (error || !data) {
     console.error('Error fetching user role:', error || 'No data returned');
