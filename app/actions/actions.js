@@ -12,6 +12,7 @@ export async function login(formData) {
   try {
     // Sign in with email and password
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    //console.log('Sign in data:', data, 'Error:', error)
 
     if (error) {
       // Handle errors gracefully without throwing
@@ -82,14 +83,14 @@ export async function checkUserRole() {
     .eq('id', user)
     .single();
 
-  console.log("checkUserRole function data: ",data)
+  //console.log("checkUserRole function data: ",data)
 
   if (error || !data) {
     console.error('Error fetching user role:', error || 'No data returned');
     return { hasAccess: false, role: null, email };
   }
 
-  console.log('User Role:', data.roles);
+  //console.log('User Role:', data.roles);
 
   return { hasAccess: true, role: data.roles.role_name, email };
 }

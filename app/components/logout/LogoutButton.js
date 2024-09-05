@@ -35,8 +35,8 @@ export default function LogoutButton() {
 
   return (
     <>
-      <Button onClick={handleLogout} colorScheme='blue' size='lg' mt={4} isDisabled={loading}>
-        {loading ? <Spinner size="sm" /> : 'Sign out'}
+      <Button onClick={handleLogout} colorScheme='red' size='md' w={"100%"} fontSize={"93%"} mt={4} mb={4} isDisabled={loading} >
+        {loading ? <Spinner size="sm" /> : 'Salir'}
       </Button>
       {error && <Text color="red.500">{error}</Text>}
     </>

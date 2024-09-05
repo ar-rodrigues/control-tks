@@ -2,16 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { checkUserRole } from './actions/actions';
-import LogoutButton from './components/logout/LogoutButton';
-import { Box, Flex, Heading, Text, VStack, Spinner } from '@chakra-ui/react';
-import { FiAtSign } from "react-icons/fi";
-import { FaUserShield } from 'react-icons/fa';
+import { checkUserRole } from '../actions/actions';
+import { DecryptorDropzone } from '../components/Decryptor/DecryptorDropzone';
+import { Box, Flex, Heading, VStack, Spinner } from '@chakra-ui/react';
 
-const Home = () => {
+const BackOffice = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState(null);
-  const [email, setEmail] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -22,7 +19,6 @@ const Home = () => {
           router.push('/login');
         } else {
           setRole(role);
-          setEmail(email);
         }
       } catch (error) {
         console.error('Failed to fetch user role:', error);
@@ -35,6 +31,14 @@ const Home = () => {
     fetchUserRole();
   }, [router]);
 
+  if(role !== 'admin' && role !== 'back-office' && !isLoading){
+    return (
+        <Flex minH="100vh" justify="center" align="center" p={8} bgGradient="linear(to-r, gray.50, blue.50)">
+            <Heading size="lg" color="red.500">Acceso denegado</Heading>
+        </Flex>
+    )
+  }
+
   if (isLoading) {
     return (
       <Flex minH="100vh" justify="center" align="center" p={8} bgGradient="linear(to-r, gray.50, blue.50)">
@@ -44,7 +48,7 @@ const Home = () => {
   }
 
   return (
-    <Flex
+     <Flex
       minH="100vh"
       justify="center"
       align="center"
@@ -62,21 +66,13 @@ const Home = () => {
       >
         <VStack spacing={6}>
           <Heading size="lg" color="blue.500">
-            Hola!
+            Desencriptador
           </Heading>
-          <Flex align="center" color="gray.600">
-            <FiAtSign boxSize={6} mr={2} />
-            <Text fontSize="lg">{email}</Text>
-          </Flex>
-          <Flex align="center" color="gray.600">
-            <FaUserShield style={{ marginRight: '8px', fontSize: '24px' }} />
-            <Text fontSize="lg">Role: {role}</Text>
-          </Flex>
-          <LogoutButton />
+          <DecryptorDropzone />
         </VStack>
       </Box>
     </Flex>
   );
 };
 
-export default Home;
+export default BackOffice;

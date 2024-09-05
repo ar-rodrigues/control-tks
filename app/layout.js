@@ -1,12 +1,13 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { metadata as siteMetadata } from "./metadata";
-import { Providers } from './providers'
-
+import { Providers } from './providers';
+import { Box } from "@chakra-ui/react";
+import Sidebar from "./components/Sidebar/Sidebar"
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   return (
     <html lang="es-mx" className="scroll-smooth">
       <head>
@@ -19,7 +20,12 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <Providers>
-          {children}
+          <Box display="flex" minH="100vh" overflowX="auto">
+            <Sidebar />
+            <Box flex="1" p="4">
+              {children}
+            </Box>
+          </Box>
         </Providers>
       </body>
     </html>

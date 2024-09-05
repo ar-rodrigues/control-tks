@@ -22,6 +22,7 @@ const Login = () => {
 
     try {
       const result = await login(formData);
+      console.log(result)
       if (!result.success) {
         setError('Credenciales incorrectas. Intente otra vez.');
       } else {
