@@ -74,16 +74,14 @@ export async function checkUserRole() {
   //console.log('User ID:', user);
   //console.log('User Email:', email);
 
-  // Fetch the user's role from the profiles table using the correct relationship
+  // Fetch the user's role from the profile_roles view
   const { data, error } = await supabase
-    .from('profiles')
-    .select(`
-      roles:roles!profiles_roles_fkey(role_name)
-    `)
+    .from('profile_roles')
+    .select('role_name')
     .eq('id', user)
     .single();
 
-  //console.log("checkUserRole function data: ",data)
+  console.log("checkUserRole function data: ",data)
 
   if (error || !data) {
     console.error('Error fetching user role:', error || 'No data returned');
@@ -92,7 +90,7 @@ export async function checkUserRole() {
 
   //console.log('User Role:', data.roles);
 
-  return { hasAccess: true, role: data.roles.role_name, email };
+  return { hasAccess: true, role: data.role_name, email };
 }
 
 
