@@ -8,6 +8,7 @@ import LogoutButton from '../../components/logout/LogoutButton';
 import SidebarLink from './SidebarLink';
 import { FiHome, FiUsers } from 'react-icons/fi'; 
 import { CiUnlock, CiMenuKebab, CiMenuBurger  } from "react-icons/ci";
+import { GoSidebarExpand, GoSidebarCollapse  } from "react-icons/go";
 
 
 const Sidebar = () => {
@@ -50,23 +51,25 @@ const Sidebar = () => {
       as="nav"
       bgGradient="linear(to-r, blackAlpha.800, gray.800)"
       color="white"
-      w={{ base: '100px', md: isTextVisible ? '200px' : '150px', sm: isTextVisible ? '200px' : '80px' } }
+      w={{ base: '100px', md: isTextVisible ? '200px' : '80px', sm: isTextVisible ? '200px' : '100px' } }
       p="4"
       position="static"
-      height="100vh"
-      minW={"100px"}
+      height="100$"
+      minH={"100%"}
+      minW={isTextVisible ? "200px" : "80px"}
+
       overflow={"hidden"}
     >
       <Button
         colorScheme="teal"
-        mb="4"
+        size='sm' w={"auto"} fontSize={"100%"} mt={4} mb={4}
         onClick={() => setIsTextVisible(!isTextVisible)} 
       >
-        {isTextVisible ? <CiMenuKebab /> : <CiMenuBurger /> }
+        {isTextVisible ? <GoSidebarExpand /> : <GoSidebarCollapse /> }
       </Button>
 
-      <VStack align="stretch" spacing="4" pb="10" pt="10" justify="space-between" h="100%">
-        <VStack align="stretch" spacing="4" w="100%">
+      <VStack align="start" spacing="4" pb="10" pt="10" justify="space-between" h="100%">
+        <VStack align="stretch" spacing="6" w="100%">
           {links
             .filter(link => link.roles.includes(roleName)) // Only show links based on role
             .map(link => (
@@ -79,9 +82,9 @@ const Sidebar = () => {
                 isTextVisible={isTextVisible}
               />
             ))}
+        <LogoutButton isTextVisible={isTextVisible} />
         </VStack>
         
-        <LogoutButton />
       </VStack>
     </Box>
   );

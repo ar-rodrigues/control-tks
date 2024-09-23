@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Button, Spinner, Text } from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
+import { IoIosLogOut } from "react-icons/io";
 
-export default function LogoutButton() {
+
+export default function LogoutButton({isTextVisible}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -35,8 +37,8 @@ export default function LogoutButton() {
 
   return (
     <>
-      <Button onClick={handleLogout} colorScheme='red' size='md' w={"100%"} fontSize={"93%"} mt={4} mb={4} isDisabled={loading} >
-        {loading ? <Spinner size="sm" /> : 'Salir'}
+      <Button onClick={handleLogout} colorScheme='red' size='sm' w={"100%"} fontSize={"93%"} mt={4} mb={4} isDisabled={loading} >
+        {loading ? <Spinner size="sm" /> : isTextVisible ? "Salir" : <IoIosLogOut />}
       </Button>
       {error && <Text color="red.500">{error}</Text>}
     </>
