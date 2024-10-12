@@ -81,7 +81,7 @@ export async function checkUserRole() {
     .eq('id', user)
     .single();
 
-  console.log("checkUserRole function data: ",data)
+  //console.log("checkUserRole function data: ",data)
 
   if (error || !data) {
     console.error('Error fetching user role:', error || 'No data returned');
