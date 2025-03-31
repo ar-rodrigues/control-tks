@@ -3,7 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkUserRole } from "./actions/actions";
-import { Box, Flex, VStack, Spinner, useToast } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  VStack,
+  Spinner,
+  useToast,
+  useBreakpointValue,
+} from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
 
@@ -65,6 +72,12 @@ const Home = () => {
   const { getCurrentLocation } = useLocationTracking();
   const toast = useToast();
   const router = useRouter();
+
+  // Responsive values
+  const mapHeight = useBreakpointValue({ base: "45vh", md: "40vh" });
+  const buttonOffset = useBreakpointValue({ base: "-60px", md: "-80px" });
+  const contentPadding = useBreakpointValue({ base: 3, md: 4, lg: 6 });
+  const contentSpacing = useBreakpointValue({ base: 6, md: 8 });
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -139,6 +152,7 @@ const Home = () => {
         status: "success",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
     } catch (error) {
       console.error("Error:", error);
@@ -149,6 +163,7 @@ const Home = () => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
     }
   };
@@ -156,27 +171,43 @@ const Home = () => {
   if (isLoading) {
     return (
       <Flex minH="100vh" justify="center" align="center" bg="white">
-        <Spinner size="xl" />
+        <Spinner size="xl" color="blue.500" />
       </Flex>
     );
   }
 
   return (
-    <Flex minH="100vh" direction="column" bg="white" position="relative">
+    <Flex
+      minH="100vh"
+      direction="column"
+      bg="white"
+      position="relative"
+      maxW="100vw"
+      overflow="hidden"
+    >
       {/* Map Section */}
-      <Box h="40vh" position="relative">
+      <Box h={mapHeight} position="relative">
         <Map location={currentLocation} isPlaceholder={!currentLocation} />
       </Box>
 
       {/* Main Content */}
-      <VStack spacing={8} p={4} flex={1} align="stretch">
+      <VStack
+        spacing={contentSpacing}
+        p={contentPadding}
+        flex={1}
+        align="stretch"
+        maxW={{ base: "100%", md: "container.md" }}
+        mx="auto"
+        w="full"
+      >
         {/* Check In/Out Button and Time Display */}
         <Flex
           direction="column"
           align="center"
           justify="center"
           position="relative"
-          mt="-60px"
+          mt={buttonOffset}
+          px={2}
         >
           <CheckButton
             isCheckedIn={!!workSession?.check_in}
@@ -186,11 +217,18 @@ const Home = () => {
         </Flex>
 
         {/* Time Stats */}
-        <TimeStats
-          checkInTime={checkInTime}
-          checkOutTime={checkOutTime}
-          hoursWorked={hoursWorked}
-        />
+        <Box
+          w="full"
+          maxW={{ base: "100%", md: "container.sm" }}
+          mx="auto"
+          px={2}
+        >
+          <TimeStats
+            checkInTime={checkInTime}
+            checkOutTime={checkOutTime}
+            hoursWorked={hoursWorked}
+          />
+        </Box>
       </VStack>
     </Flex>
   );
