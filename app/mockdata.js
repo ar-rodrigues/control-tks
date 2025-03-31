@@ -1,0 +1,32 @@
+export const workSessions = [
+  {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    employee_id: "123e4567-e89b-12d3-a456-426614174000",
+    check_in: "2025-03-31T08:00:00Z",
+    check_in_location: { lat: 40.7128, lng: -74.006 },
+    check_out: "2025-03-31T17:00:00Z",
+    check_out_location: { lat: 40.7128, lng: -74.0065 },
+    total_hours: "09:00:00",
+    created_at: "2025-03-31T08:00:00Z",
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440001",
+    employee_id: "123e4567-e89b-12d3-a456-426614174001",
+    check_in: "2025-03-31T09:15:00Z",
+    check_in_location: { lat: 34.0522, lng: -118.2437 },
+    check_out: "2025-03-31T18:00:00Z",
+    check_out_location: { lat: 34.0522, lng: -118.2435 },
+    total_hours: "08:45:00",
+    created_at: "2025-03-31T09:15:00Z",
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440002",
+    employee_id: "123e4567-e89b-12d3-a456-426614174002",
+    check_in: "2025-03-31T10:00:00Z",
+    check_in_location: { lat: 34.0522, lng: -118.2437 },
+    check_out: "2025-03-31T19:00:00Z",
+    check_out_location: { lat: 34.0522, lng: -118.2435 },
+    total_hours: "09:00:00",
+    created_at: "2025-03-31T10:00:00Z",
+  },
+];

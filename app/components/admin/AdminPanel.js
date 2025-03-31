@@ -1,20 +1,30 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Box, Button, Spinner } from '@chakra-ui/react';
-import { fetchUsers, deleteUser, updateUser, createUser } from '../../api/users/users';
-import { UserTable } from './UserTable';
-import { AddUserModal } from './AddUserModal';
-import { DeleteConfirmationModal } from './DeleteConfirmationModal';
-import { PasswordModal } from './PasswordModal';
-import { fetchRoles } from '../../api/roles/roles';
+import { useEffect, useState } from "react";
+import { Box, Button, Spinner } from "@chakra-ui/react";
+import {
+  fetchUsers,
+  deleteUser,
+  updateUser,
+  createUser,
+} from "../../api/users/users";
+import { UserTable } from "./UserTable";
+import { AddUserModal } from "./AddUserModal";
+import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { PasswordModal } from "./PasswordModal";
+import { fetchRoles } from "../../api/roles/roles";
 
 export function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editUserId, setEditUserId] = useState(null);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: '' });
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "",
+  });
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -22,7 +32,9 @@ export function AdminPanel() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchUsers().then(setUsers).finally(() => setIsLoading(false));
+    fetchUsers()
+      .then(setUsers)
+      .finally(() => setIsLoading(false));
     fetchRoles().then(setRoles); // Fetch roles once
   }, []);
 
@@ -36,7 +48,7 @@ export function AdminPanel() {
       setIsLoading(true);
       await deleteUser(deleteUserId);
     } catch (error) {
-      console.error('Failed to delete user:', error.message);
+      console.error("Failed to delete user:", error.message);
     } finally {
       setDeleteUserId(null);
       setIsLoading(false);
@@ -56,7 +68,7 @@ export function AdminPanel() {
       await updateUser(id, user);
       setUsers(users.map((u) => (u.id === id ? { ...u, ...user } : u)));
     } catch (error) {
-      console.error('Failed to update user:', error.message);
+      console.error("Failed to update user:", error.message);
     } finally {
       setEditUserId(null);
       await fetchUsers().then(setUsers);
@@ -67,15 +79,15 @@ export function AdminPanel() {
     try {
       setIsLoading(true);
       await createUser(newUser);
-      setNewUser({ name: '', email: '', role: '' });
+      setNewUser({ name: "", email: "", role: "" });
     } catch (error) {
-      if (error.message === 'Email already exists') {
-        setError('Correo ya registrado.');
+      if (error.message === "Email already exists") {
+        setError("Correo ya registrado.");
         setTimeout(() => {
           setError(null);
         }, 3000);
       } else {
-        console.error('Failed to add user:', error.message);
+        console.error("Failed to add user:", error.message);
       }
     } finally {
       setIsLoading(false);
@@ -88,9 +100,11 @@ export function AdminPanel() {
     try {
       setIsLoading(true);
       await updateUser(id, { password: newPassword });
-      setUsers(users.map((u) => (u.id === id ? { ...u, password: newPassword } : u)));
+      setUsers(
+        users.map((u) => (u.id === id ? { ...u, password: newPassword } : u))
+      );
     } catch (error) {
-      console.error('Failed to update password:', error.message);
+      console.error("Failed to update password:", error.message);
     } finally {
       setIsLoading(false);
       setPasswordModalOpen(false);
@@ -100,13 +114,28 @@ export function AdminPanel() {
 
   return (
     <Box>
-      {isLoading && !isAddModalOpen && !isDeleteModalOpen && !isPasswordModalOpen ? (
-        <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
+      {isLoading &&
+      !isAddModalOpen &&
+      !isDeleteModalOpen &&
+      !isPasswordModalOpen ? (
+        <Spinner
+          thickness="4px"
+          speed="0.65s"
+          emptyColor="gray.200"
+          color="blue.500"
+          size="xl"
+        />
       ) : (
         <>
-          <Button onClick={() => setAddModalOpen(true)} colorScheme="blue" mb={4}>
-            Add User
-          </Button>
+          <Box display="flex" justifyContent="flex-end" mb={4}>
+            <Button
+              onClick={() => setAddModalOpen(true)}
+              colorScheme="blue"
+              mb={4}
+            >
+              Agregar Usuario
+            </Button>
+          </Box>
           <UserTable
             users={users}
             editUserId={editUserId}
@@ -140,12 +169,12 @@ export function AdminPanel() {
           />
           {editUserId && (
             <PasswordModal
-            isOpen={isPasswordModalOpen}
-            onClose={() => setPasswordModalOpen(false)} 
-            userId={editUserId}
-            onPasswordChange={handlePasswordUpdate}
-            isLoading={isLoading}
-          />
+              isOpen={isPasswordModalOpen}
+              onClose={() => setPasswordModalOpen(false)}
+              userId={editUserId}
+              onPasswordChange={handlePasswordUpdate}
+              isLoading={isLoading}
+            />
           )}
         </>
       )}
