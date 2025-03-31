@@ -15,12 +15,12 @@ import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
 
 // Components
-import TimeDisplay from "./components/TimeDisplay";
-import TimeStats from "./components/TimeStats";
-import CheckButton from "./components/CheckButton";
+import TimeDisplay from "./components/Home/TimeDisplay";
+import TimeStats from "./components/Home/TimeStats";
+import CheckButton from "./components/Home/CheckButton";
 
 // Dynamically import the Map component to avoid SSR issues
-const Map = dynamic(() => import("./components/Map"), { ssr: false });
+const Map = dynamic(() => import("./components/Home/Map"), { ssr: false });
 
 const useTimeTracking = () => {
   const [currentTime, setCurrentTime] = useState(new Date());

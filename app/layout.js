@@ -1,13 +1,25 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { metadata as siteMetadata } from "./metadata";
-import { Providers } from './providers';
+import { Providers } from "./providers";
 import { Box } from "@chakra-ui/react";
-import Sidebar from "./components/Sidebar/Sidebar"
-
+import Sidebar from "./components/Sidebar/Sidebar";
+import { headers } from "next/headers";
+import TabMenu from "./components/TabMenu/TabMenu";
 const inter = Inter({ subsets: ["latin"] });
 
+function isMobileDevice(userAgent) {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    userAgent
+  );
+}
+
 export default async function RootLayout({ children }) {
+  // Check side of the screen
+  const headersList = headers();
+  const userAgent = headersList.get("user-agent");
+  const isMobile = isMobileDevice(userAgent);
+
   return (
     <html lang="es-mx" className="scroll-smooth">
       <head>
@@ -21,10 +33,11 @@ export default async function RootLayout({ children }) {
       <body className={inter.className}>
         <Providers>
           <Box display="flex" minH="100vh" overflowX="auto">
-            <Sidebar />
+            {!isMobile && <Sidebar />}
             <Box flex="1" p="4">
               {children}
             </Box>
+            {isMobile && <TabMenu />}
           </Box>
         </Providers>
       </body>
