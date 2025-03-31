@@ -13,7 +13,7 @@ import {
   fetchClientes,
   fetchEstados,
   fetchZonas,
-} from "../api/dealers/dealers";
+} from "../api/_dealers/dealers";
 
 import TableDealers from "../components/Dealers/TableDealers";
 
