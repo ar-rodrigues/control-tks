@@ -1,6 +1,6 @@
-import { Button } from "@chakra-ui/react";
+import { Button, Spinner } from "@chakra-ui/react";
 
-const CheckButton = ({ isCheckedIn, onClick }) => {
+const CheckButton = ({ isCheckedIn, onClick, isLoading = false }) => {
   return (
     <Button
       w="200px"
@@ -12,17 +12,25 @@ const CheckButton = ({ isCheckedIn, onClick }) => {
       fontSize="24px"
       boxShadow="lg"
       _hover={{
-        transform: "scale(1.05)",
+        transform: isLoading ? "none" : "scale(1.05)",
         boxShadow: "xl",
       }}
       _active={{
-        transform: "scale(0.95)",
+        transform: isLoading ? "none" : "scale(0.95)",
         boxShadow: "inner",
       }}
       transition="all 0.2s ease-in-out"
       onClick={onClick}
+      isLoading={isLoading}
+      disabled={isLoading}
     >
-      {isCheckedIn ? "CHECK OUT" : "CHECK IN"}
+      {isLoading ? (
+        <Spinner size="xl" color="white" />
+      ) : isCheckedIn ? (
+        "CHECK OUT"
+      ) : (
+        "CHECK IN"
+      )}
     </Button>
   );
 };

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkUserRole } from "../actions/actions";
-import { AdminPanel } from "../components/admin/AdminPanel";
+import { AdminPanel } from "../components/Users/AdminPanel";
 import {
   Box,
   Flex,

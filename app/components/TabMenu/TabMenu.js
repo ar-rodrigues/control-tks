@@ -8,6 +8,7 @@ import { FiHome, FiUsers, FiLogOut } from "react-icons/fi";
 import { CiUnlock } from "react-icons/ci";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
+import { menuLinks, logoutLink } from "../config/menuConfig";
 
 const TabMenu = () => {
   const pathname = usePathname();
@@ -40,23 +41,6 @@ const TabMenu = () => {
 
   if (pathname === "/login") return null;
 
-  // Link data with conditional rendering based on role
-  const links = [
-    {
-      href: "/",
-      text: "Inicio",
-      icon: FiHome,
-      roles: ["admin", "back-office", "auditor"],
-    },
-    { href: "/users", text: "Usuarios", icon: FiUsers, roles: ["admin"] },
-    {
-      href: "/back-office",
-      text: "Desencriptador",
-      icon: CiUnlock,
-      roles: ["admin", "back-office"],
-    },
-  ];
-
   // Función para el logout
   const handleLogout = async () => {
     try {
@@ -68,16 +52,15 @@ const TabMenu = () => {
   };
 
   // Filtrar enlaces según el rol del usuario
-  const filteredLinks = links.filter((link) => link.roles.includes(roleName));
+  const filteredLinks = menuLinks.filter((link) =>
+    link.roles.includes(roleName)
+  );
 
   // Agregar el enlace de logout
   const tabLinks = [
     ...filteredLinks,
     {
-      href: "#logout",
-      text: "Salir",
-      icon: FiLogOut,
-      roles: ["admin", "back-office", "auditor"],
+      ...logoutLink,
       onClick: handleLogout,
     },
   ];

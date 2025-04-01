@@ -67,6 +67,7 @@ const Home = () => {
   const [checkOutTime, setCheckOutTime] = useState(null);
   const [hoursWorked, setHoursWorked] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const { currentTime, currentDate } = useTimeTracking();
   const { getCurrentLocation } = useLocationTracking();
@@ -79,6 +80,41 @@ const Home = () => {
   const contentPadding = useBreakpointValue({ base: 3, md: 4, lg: 6 });
   const contentSpacing = useBreakpointValue({ base: 6, md: 8 });
 
+  const fetchCurrentWorkSession = async () => {
+    try {
+      const response = await fetch("/api/work-sessions", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.workSession) {
+        setWorkSession(data.workSession);
+
+        // Set check in time if available
+        if (data.workSession.check_in) {
+          setCheckInTime(formatTime(new Date(data.workSession.check_in)));
+        }
+
+        // Set check in location if available
+        if (data.workSession.check_in_location) {
+          setCurrentLocation(data.workSession.check_in_location);
+        }
+
+        // Set check out time and hours worked if available
+        if (data.workSession.check_out) {
+          setCheckOutTime(formatTime(new Date(data.workSession.check_out)));
+          setHoursWorked(data.workSession.total_hours);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch work session:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
@@ -88,6 +124,9 @@ const Home = () => {
         } else {
           setRole(role);
           setEmail(email);
+
+          // Fetch current work session after authentication
+          await fetchCurrentWorkSession();
         }
       } catch (error) {
         console.error("Failed to fetch user role:", error);
@@ -109,62 +148,104 @@ const Home = () => {
   };
 
   const handleCheckInOut = async () => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
     try {
       const now = new Date();
       const location = await getCurrentLocation();
       setCurrentLocation(location);
 
-      if (!workSession?.check_in) {
+      if (!workSession?.check_in || workSession?.check_out) {
         // Check In
-        setCheckInTime(formatTime(now));
-        setWorkSession({
-          check_in: now.toISOString(),
-          check_in_location: location,
+        const response = await fetch("/api/work-sessions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            check_in_location: location,
+          }),
         });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setCheckInTime(formatTime(now));
+          setWorkSession(data.workSession);
+          setCheckOutTime(null);
+          setHoursWorked(null);
+
+          toast({
+            title: "Check-in exitoso",
+            description: "Tu ubicación ha sido registrada",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+            position: "top",
+          });
+        } else {
+          toast({
+            title: "Check-in fallido",
+            description: data.error || "Ocurrió un error",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+            position: "top",
+          });
+        }
       } else {
         // Check Out
-        setCheckOutTime(formatTime(now));
+        const response = await fetch("/api/work-sessions", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            check_out_location: location,
+          }),
+        });
 
-        const checkIn = new Date(workSession.check_in);
-        const diffMs = now - checkIn;
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffMinutes = Math.floor(
-          (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-        );
-        setHoursWorked(
-          `${diffHours.toString().padStart(2, "0")}:${diffMinutes
-            .toString()
-            .padStart(2, "0")}`
-        );
+        const data = await response.json();
 
-        setWorkSession((prev) => ({
-          ...prev,
-          check_out: now.toISOString(),
-          check_out_location: location,
-        }));
+        if (response.ok) {
+          setCheckOutTime(formatTime(now));
+          setWorkSession(data.workSession);
+          setHoursWorked(data.workSession.total_hours);
+          setCurrentLocation(null);
+
+          toast({
+            title: "Check-out exitoso",
+            description: "Tu hora de salida ha sido registrada",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+            position: "top",
+          });
+        } else {
+          toast({
+            title: "Check-out fallido",
+            description: data.error || "Ocurrió un error",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+            position: "top",
+          });
+        }
       }
-
-      toast({
-        title: workSession?.check_in
-          ? "Check-out successful"
-          : "Check-in successful",
-        description: "Your location has been recorded",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top",
-      });
     } catch (error) {
       console.error("Error:", error);
       toast({
         title: "Error",
         description:
-          "Unable to get your location. Please enable location services.",
+          "No se pudo obtener su ubicación. Por favor, habilite los servicios de ubicación.",
         status: "error",
         duration: 3000,
         isClosable: true,
         position: "top",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -210,8 +291,9 @@ const Home = () => {
           px={2}
         >
           <CheckButton
-            isCheckedIn={!!workSession?.check_in}
+            isCheckedIn={!!workSession?.check_in && !workSession?.check_out}
             onClick={handleCheckInOut}
+            isLoading={isProcessing}
           />
           <TimeDisplay currentTime={currentTime} currentDate={currentDate} />
         </Flex>
