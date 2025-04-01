@@ -21,6 +21,7 @@ import dynamic from "next/dynamic";
 import StatsCard from "../components/admin/StatsCard";
 import WorkSessionsTable from "../components/admin/WorkSessionsTable";
 import { checkUserRole } from "../actions/actions";
+import { toLocalDate } from "../utils/toLocalDate";
 import { useRouter } from "next/navigation";
 
 // Dynamically import components that use browser APIs
@@ -222,12 +223,7 @@ const AdminDashboard = () => {
         >
           {getAvailableDates().map((date) => (
             <option key={date} value={date}>
-              {new Date(date).toLocaleDateString("es-MX", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {toLocalDate(date)}
             </option>
           ))}
         </Select>
