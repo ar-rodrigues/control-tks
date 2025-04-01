@@ -25,10 +25,10 @@ import { toLocalDate } from "../utils/toLocalDate";
 import { useRouter } from "next/navigation";
 
 // Dynamically import components that use browser APIs
-const PieChart = dynamic(() => import("../components/PieChart"), {
+const PieChart = dynamic(() => import("../components/admin/PieChart"), {
   ssr: false,
 });
-const LocationMap = dynamic(() => import("../components/LocationMap"), {
+const LocationMap = dynamic(() => import("../components/admin/LocationMap"), {
   ssr: false,
 });
 
