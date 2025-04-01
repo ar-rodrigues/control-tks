@@ -1,7 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Box, Button, Spinner } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Spinner,
+  HStack,
+  useToast,
+  Text,
+  Icon,
+  Tooltip,
+  Input,
+  VStack,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Textarea,
+  Badge,
+} from "@chakra-ui/react";
 import {
   fetchUsers,
   deleteUser,
@@ -13,6 +34,8 @@ import { AddUserModal } from "./AddUserModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { PasswordModal } from "./PasswordModal";
 import { fetchRoles } from "../../api/roles/roles";
+import { FaFileImport, FaUserPlus, FaDownload } from "react-icons/fa";
+import { generateRandomPassword } from "../../utils/passwordGenerator";
 
 export function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -30,13 +53,103 @@ export function AdminPanel() {
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState(null);
   const [error, setError] = useState(null);
+  const [bulkUsers, setBulkUsers] = useState("");
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     fetchUsers()
       .then(setUsers)
       .finally(() => setIsLoading(false));
-    fetchRoles().then(setRoles); // Fetch roles once
+    fetchRoles().then(setRoles);
   }, []);
+
+  const handleBulkAdd = async () => {
+    try {
+      setIsBulkLoading(true);
+      const userLines = bulkUsers.split("\n").filter((line) => line.trim());
+      const results = [];
+      const errors = [];
+
+      for (const line of userLines) {
+        const [name, email, roleName] = line
+          .split(",")
+          .map((item) => item.trim());
+        if (!name || !email || !roleName) {
+          errors.push(`Invalid line format: ${line}`);
+          continue;
+        }
+
+        const role = roles.find(
+          (r) => r.role_name.toLowerCase() === roleName.toLowerCase()
+        );
+        if (!role) {
+          errors.push(`Invalid role for user ${email}: ${roleName}`);
+          continue;
+        }
+
+        const password = generateRandomPassword();
+        try {
+          await createUser({
+            name,
+            email,
+            password,
+            role: role.id.toString(),
+          });
+          results.push(`Successfully created user: ${email}`);
+        } catch (error) {
+          errors.push(`Failed to create user ${email}: ${error.message}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        toast({
+          title: "Algunos usuarios no pudieron ser creados",
+          description: errors.join("\n"),
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+
+      if (results.length > 0) {
+        toast({
+          title: "Éxito",
+          description: results.join("\n"),
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+
+      setBulkUsers("");
+      setIsBulkModalOpen(false);
+      await fetchUsers().then(setUsers);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al procesar la creación masiva de usuarios",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template =
+      "name,email,role\nJohn Doe,john@example.com,admin\nJane Smith,jane@example.com,user";
+    const blob = new Blob([template], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "users_template.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   const handleDelete = async (id) => {
     setDeleteUserId(id);
@@ -127,15 +240,39 @@ export function AdminPanel() {
         />
       ) : (
         <>
-          <Box display="flex" justifyContent="flex-end" mb={4}>
-            <Button
-              onClick={() => setAddModalOpen(true)}
-              colorScheme="blue"
-              mb={4}
-            >
-              Agregar Usuario
-            </Button>
-          </Box>
+          <VStack spacing={4} align="stretch" mb={6}>
+            <HStack spacing={4} justify="space-between">
+              <HStack spacing={4}>
+                <Button
+                  leftIcon={<FaUserPlus />}
+                  onClick={() => setAddModalOpen(true)}
+                  colorScheme="blue"
+                  size="md"
+                >
+                  Agregar Usuario
+                </Button>
+                <Button
+                  leftIcon={<FaFileImport />}
+                  onClick={() => setIsBulkModalOpen(true)}
+                  colorScheme="green"
+                  size="md"
+                >
+                  Importar Usuarios
+                </Button>
+                <Tooltip label="Descargar plantilla">
+                  <Button
+                    leftIcon={<FaDownload />}
+                    onClick={downloadTemplate}
+                    variant="outline"
+                    size="md"
+                  >
+                    Plantilla
+                  </Button>
+                </Tooltip>
+              </HStack>
+            </HStack>
+          </VStack>
+
           <UserTable
             users={users}
             editUserId={editUserId}
@@ -151,6 +288,7 @@ export function AdminPanel() {
             }}
             roles={roles}
           />
+
           <AddUserModal
             isOpen={isAddModalOpen}
             onClose={() => setAddModalOpen(false)}
@@ -161,12 +299,14 @@ export function AdminPanel() {
             isLoading={isLoading}
             roles={roles}
           />
+
           <DeleteConfirmationModal
             isOpen={isDeleteModalOpen}
             onClose={() => setDeleteModalOpen(false)}
             handleDeleteConfirmed={handleDeleteConfirmed}
             isLoading={isLoading}
           />
+
           {editUserId && (
             <PasswordModal
               isOpen={isPasswordModalOpen}
@@ -176,6 +316,54 @@ export function AdminPanel() {
               isLoading={isLoading}
             />
           )}
+
+          <Modal
+            isOpen={isBulkModalOpen}
+            onClose={() => setIsBulkModalOpen(false)}
+            size="xl"
+          >
+            <ModalOverlay />
+            <ModalContent>
+              <ModalHeader>Importar Usuarios</ModalHeader>
+              <ModalCloseButton />
+              <ModalBody>
+                <VStack spacing={4}>
+                  <Text>
+                    Ingrese los usuarios en formato CSV (nombre,email,rol). Un
+                    usuario por línea.
+                  </Text>
+                  <Textarea
+                    value={bulkUsers}
+                    onChange={(e) => setBulkUsers(e.target.value)}
+                    placeholder="John Doe,john@example.com,admin&#10;Jane Smith,jane@example.com,user"
+                    size="lg"
+                    rows={10}
+                    fontFamily="monospace"
+                  />
+                  <Badge colorScheme="blue" p={2} borderRadius="md">
+                    Roles disponibles:{" "}
+                    {roles.map((r) => r.role_name).join(", ")}
+                  </Badge>
+                </VStack>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  variant="ghost"
+                  mr={3}
+                  onClick={() => setIsBulkModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  colorScheme="green"
+                  onClick={handleBulkAdd}
+                  isLoading={isBulkLoading}
+                >
+                  Importar Usuarios
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
         </>
       )}
     </Box>

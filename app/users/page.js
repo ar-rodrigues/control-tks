@@ -97,25 +97,29 @@ const Users = () => {
 
   return (
     <Container maxW="container.xl" py={10}>
-      <Card>
-        <CardHeader>
+      <Card boxShadow="lg" borderRadius="xl" overflow="hidden" bg="white">
+        <CardHeader
+          bg="blue.50"
+          borderBottom="1px"
+          borderColor="gray.200"
+          py={6}
+        >
           <Flex align="center" justify="space-between" mb={2}>
-            <VStack align="start" spacing={1}>
-              <Flex align="center" gap={2}>
+            <VStack align="start" spacing={2}>
+              <Flex align="center" gap={3}>
                 <Icon as={FaUser} w={8} h={8} color="blue.500" />
-                <Heading size="lg" color="blue.500">
+                <Heading size="lg" color="blue.600" fontWeight="semibold">
                   Administración de Usuarios
                 </Heading>
               </Flex>
-              <Text color="gray.600">
+              <Text color="gray.600" fontSize="md">
                 Gestione los usuarios del sistema, sus roles y permisos
               </Text>
             </VStack>
           </Flex>
-          <Divider />
         </CardHeader>
-        <CardBody>
-          <Box p={4}>
+        <CardBody p={6}>
+          <Box>
             <AdminPanel />
           </Box>
         </CardBody>

@@ -19,6 +19,8 @@ import {
   Badge,
   Tooltip,
   Skeleton,
+  useColorModeValue,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import {
   EditIcon,
@@ -48,6 +50,13 @@ export function UserTable({
   const { errors, validate } = useValidateUser(newUser);
   const toast = useToast();
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const bgHover = useColorModeValue("gray.50", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const headerBg = useColorModeValue("gray.50", "gray.700");
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const tableSize = useBreakpointValue({ base: "sm", md: "md" });
+  const buttonSize = useBreakpointValue({ base: "xs", md: "sm" });
 
   const handleInputChange = (field, value) => {
     setNewUser({ ...newUser, [field]: value });
@@ -79,8 +88,12 @@ export function UserTable({
     <Th
       cursor="pointer"
       onClick={() => handleSort(sortKey)}
-      fontSize={{ base: "sm", md: "md" }}
-      _hover={{ bg: "gray.50" }}
+      fontSize={{ base: "xs", md: "sm" }}
+      bg={headerBg}
+      _hover={{ bg: "gray.100" }}
+      transition="background-color 0.2s"
+      py={3}
+      whiteSpace="nowrap"
     >
       <HStack spacing={1}>
         {children}
@@ -94,173 +107,211 @@ export function UserTable({
     </Th>
   );
 
+  const ActionButtons = ({ user, isEditing }) => {
+    if (isEditing) {
+      return (
+        <HStack spacing={1} wrap="wrap">
+          <Tooltip label="Cambiar contraseña">
+            <IconButton
+              icon={<LockIcon />}
+              onClick={() => handlePasswordChange(user.id)}
+              aria-label="Cambiar contraseña"
+              size={buttonSize}
+              colorScheme="blue"
+              isLoading={isActionLoading}
+              borderRadius="md"
+            />
+          </Tooltip>
+          <Button
+            onClick={() => handleSave(user.id)}
+            size={buttonSize}
+            colorScheme="green"
+            isLoading={isActionLoading}
+            borderRadius="md"
+          >
+            {isMobile ? "✓" : "Guardar"}
+          </Button>
+          <Tooltip label="Cancelar edición">
+            <IconButton
+              icon={<CloseIcon />}
+              onClick={() => setEditUserId(null)}
+              aria-label="Cancelar edición"
+              colorScheme="red"
+              size={buttonSize}
+              borderRadius="md"
+            />
+          </Tooltip>
+        </HStack>
+      );
+    }
+
+    return (
+      <HStack spacing={1} wrap="wrap">
+        <Tooltip label="Editar usuario">
+          <IconButton
+            icon={<EditIcon />}
+            onClick={() =>
+              handleEdit(
+                user.id,
+                user.full_name,
+                user.email,
+                user.roles?.role_name
+              )
+            }
+            aria-label="Editar"
+            size={buttonSize}
+            colorScheme="blue"
+            borderRadius="md"
+          />
+        </Tooltip>
+        <Tooltip label="Eliminar usuario">
+          <IconButton
+            icon={<DeleteIcon />}
+            onClick={() => handleDelete(user.id)}
+            aria-label="Eliminar"
+            size={buttonSize}
+            colorScheme="red"
+            borderRadius="md"
+          />
+        </Tooltip>
+      </HStack>
+    );
+  };
+
   return (
-    <TableContainer w="full" overflowX="auto">
-      <Table variant="simple" size={{ base: "sm", md: "md" }}>
-        <Thead>
-          <Tr>
-            <SortableHeader sortKey="full_name">Name</SortableHeader>
-            <SortableHeader sortKey="email">Email</SortableHeader>
-            <SortableHeader sortKey="role">Role</SortableHeader>
-            <Th fontSize={{ base: "sm", md: "md" }}>Actions</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {isLoading
-            ? Array(3)
-                .fill(0)
-                .map((_, index) => (
-                  <Tr key={index}>
-                    <Td>
-                      <Skeleton height="20px" />
+    <Box overflowX="auto" w="full">
+      <TableContainer
+        w="full"
+        borderRadius="lg"
+        border="1px"
+        borderColor={borderColor}
+        boxShadow="sm"
+      >
+        <Table variant="simple" size={tableSize}>
+          <Thead>
+            <Tr>
+              <SortableHeader sortKey="full_name">Nombre</SortableHeader>
+              <SortableHeader sortKey="email">Email</SortableHeader>
+              <SortableHeader sortKey="role">Rol</SortableHeader>
+              <Th
+                fontSize={{ base: "xs", md: "sm" }}
+                bg={headerBg}
+                py={3}
+                whiteSpace="nowrap"
+              >
+                Acciones
+              </Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {isLoading
+              ? Array(3)
+                  .fill(0)
+                  .map((_, index) => (
+                    <Tr key={index}>
+                      <Td>
+                        <Skeleton height="20px" />
+                      </Td>
+                      <Td>
+                        <Skeleton height="20px" />
+                      </Td>
+                      <Td>
+                        <Skeleton height="20px" />
+                      </Td>
+                      <Td>
+                        <Skeleton height="20px" width="100px" />
+                      </Td>
+                    </Tr>
+                  ))
+              : sortedUsers.map((user) => (
+                  <Tr
+                    key={user.id}
+                    _hover={{ bg: bgHover }}
+                    transition="background-color 0.2s"
+                  >
+                    <Td fontSize={{ base: "xs", md: "sm" }} py={3}>
+                      {editUserId === user.id ? (
+                        <VStack align="start" spacing={1}>
+                          <Input
+                            value={newUser.name}
+                            onChange={(e) =>
+                              handleInputChange("name", e.target.value)
+                            }
+                            size={buttonSize}
+                            placeholder="Ingrese nombre"
+                            borderRadius="md"
+                          />
+                          {errors.name && (
+                            <Text color="red.500" fontSize="xs">
+                              {errors.name}
+                            </Text>
+                          )}
+                        </VStack>
+                      ) : (
+                        user.full_name
+                      )}
                     </Td>
-                    <Td>
-                      <Skeleton height="20px" />
+                    <Td fontSize={{ base: "xs", md: "sm" }} py={3}>
+                      {editUserId === user.id ? (
+                        <VStack align="start" spacing={1}>
+                          <Input
+                            value={newUser.email}
+                            onChange={(e) =>
+                              handleInputChange("email", e.target.value?.trim())
+                            }
+                            size={buttonSize}
+                            placeholder="Ingrese email"
+                            borderRadius="md"
+                          />
+                          {errors.email && (
+                            <Text color="red.500" fontSize="xs">
+                              {errors.email}
+                            </Text>
+                          )}
+                        </VStack>
+                      ) : (
+                        user.email
+                      )}
                     </Td>
-                    <Td>
-                      <Skeleton height="20px" />
+                    <Td fontSize={{ base: "xs", md: "sm" }} py={3}>
+                      {editUserId === user.id ? (
+                        <Select
+                          value={newUser.role}
+                          onChange={(e) =>
+                            handleInputChange("role", e.target.value)
+                          }
+                          size={buttonSize}
+                          borderRadius="md"
+                        >
+                          {roles.map((role) => (
+                            <option key={role.id} value={role.id}>
+                              {role.role_name.toUpperCase()}
+                            </option>
+                          ))}
+                        </Select>
+                      ) : (
+                        <Badge
+                          colorScheme={user.roles?.role_name ? "blue" : "gray"}
+                          px={2}
+                          py={1}
+                          borderRadius="md"
+                          fontSize={{ base: "xs", md: "sm" }}
+                        >
+                          {user.roles?.role_name || "Rol no asignado"}
+                        </Badge>
+                      )}
                     </Td>
-                    <Td>
-                      <Skeleton height="20px" width="100px" />
+                    <Td py={3}>
+                      <ActionButtons
+                        user={user}
+                        isEditing={editUserId === user.id}
+                      />
                     </Td>
                   </Tr>
-                ))
-            : sortedUsers.map((user) => (
-                <Tr
-                  key={user.id}
-                  _hover={{ bg: "gray.50" }}
-                  transition="background-color 0.2s"
-                >
-                  <Td fontSize={{ base: "sm", md: "md" }}>
-                    {editUserId === user.id ? (
-                      <VStack align="start" spacing={1}>
-                        <Input
-                          value={newUser.name}
-                          onChange={(e) =>
-                            handleInputChange("name", e.target.value)
-                          }
-                          size="sm"
-                          placeholder="Enter name"
-                        />
-                        {errors.name && (
-                          <Text color="red.500" fontSize="sm">
-                            {errors.name}
-                          </Text>
-                        )}
-                      </VStack>
-                    ) : (
-                      user.full_name
-                    )}
-                  </Td>
-                  <Td fontSize={{ base: "sm", md: "md" }}>
-                    {editUserId === user.id ? (
-                      <VStack align="start" spacing={1}>
-                        <Input
-                          value={newUser.email}
-                          onChange={(e) =>
-                            handleInputChange("email", e.target.value?.trim())
-                          }
-                          size="sm"
-                          placeholder="Enter email"
-                        />
-                        {errors.email && (
-                          <Text color="red.500" fontSize="sm">
-                            {errors.email}
-                          </Text>
-                        )}
-                      </VStack>
-                    ) : (
-                      user.email
-                    )}
-                  </Td>
-                  <Td fontSize={{ base: "sm", md: "md" }}>
-                    {editUserId === user.id ? (
-                      <Select
-                        value={newUser.role}
-                        onChange={(e) =>
-                          handleInputChange("role", e.target.value)
-                        }
-                        size="sm"
-                      >
-                        {roles.map((role) => (
-                          <option key={role.id} value={role.id}>
-                            {role.role_name.toUpperCase()}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <Badge
-                        colorScheme={user.roles?.role_name ? "blue" : "gray"}
-                      >
-                        {user.roles?.role_name || "Role not assigned"}
-                      </Badge>
-                    )}
-                  </Td>
-                  <Td>
-                    {editUserId === user.id ? (
-                      <HStack spacing={2} wrap="wrap">
-                        <Tooltip label="Change Password">
-                          <IconButton
-                            icon={<LockIcon />}
-                            onClick={() => handlePasswordChange(user.id)}
-                            aria-label="Change Password"
-                            size="sm"
-                            colorScheme="blue"
-                            isLoading={isActionLoading}
-                          />
-                        </Tooltip>
-                        <Button
-                          onClick={() => handleSave(user.id)}
-                          size="sm"
-                          colorScheme="green"
-                          isLoading={isActionLoading}
-                        >
-                          Save
-                        </Button>
-                        <Tooltip label="Cancel Edit">
-                          <IconButton
-                            icon={<CloseIcon />}
-                            onClick={() => setEditUserId(null)}
-                            aria-label="Cancel Edit"
-                            colorScheme="red"
-                            size="sm"
-                          />
-                        </Tooltip>
-                      </HStack>
-                    ) : (
-                      <HStack spacing={2} wrap="wrap">
-                        <Tooltip label="Edit User">
-                          <IconButton
-                            icon={<EditIcon />}
-                            onClick={() =>
-                              handleEdit(
-                                user.id,
-                                user.full_name,
-                                user.email,
-                                user.roles?.role_name
-                              )
-                            }
-                            aria-label="Edit"
-                            size="sm"
-                            colorScheme="blue"
-                          />
-                        </Tooltip>
-                        <Tooltip label="Delete User">
-                          <IconButton
-                            icon={<DeleteIcon />}
-                            onClick={() => handleDelete(user.id)}
-                            aria-label="Delete"
-                            size="sm"
-                            colorScheme="red"
-                          />
-                        </Tooltip>
-                      </HStack>
-                    )}
-                  </Td>
-                </Tr>
-              ))}
-        </Tbody>
-      </Table>
-    </TableContainer>
+                ))}
+          </Tbody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 }
