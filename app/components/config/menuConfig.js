@@ -7,13 +7,13 @@ export const menuLinks = [
     href: "/",
     text: "Inicio",
     icon: FiHome,
-    roles: ["admin", "back-office", "auditor"],
+    roles: [],
   },
   {
     href: "/users",
     text: "Usuarios",
     icon: FiUsers,
-    roles: ["admin"],
+    roles: ["admin", "rh", "direccion"],
   },
   {
     href: "/back-office",
@@ -25,7 +25,7 @@ export const menuLinks = [
     href: "/admin",
     text: "Reportes",
     icon: FaChartBar,
-    roles: ["admin"],
+    roles: ["admin", "rh", "direccion"],
   },
 ];
 

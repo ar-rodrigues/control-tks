@@ -7,8 +7,8 @@ export const toLocalDate = (dateString, locale = "es-MX", options = {}) => {
     day: "numeric",
   };
 
-  // Create date at noon to avoid timezone issues
-  const dateObj = new Date(`${dateString}T12:00:00`);
+  // Create date at 11pm to avoid timezone issues
+  const dateObj = new Date(`${dateString}T11:59:59`);
 
   return dateObj.toLocaleDateString(locale, { ...defaultOptions, ...options });
 };

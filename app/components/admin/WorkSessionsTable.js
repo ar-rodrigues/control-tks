@@ -69,13 +69,7 @@ const WorkSessionsTable = ({
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${session.first_check_in_location.lat}&lon=${session.first_check_in_location.lng}`,
-        {
-          headers: {
-            "User-Agent": "TKSControl/1.0",
-            "Accept-Language": "es",
-          },
-        }
+        `/api/location?lat=${session.first_check_in_location.lat}&lon=${session.first_check_in_location.lng}`
       );
 
       if (!response.ok) {
@@ -83,7 +77,7 @@ const WorkSessionsTable = ({
       }
 
       const data = await response.json();
-      const address = data.display_name;
+      const address = data.address;
 
       setLocationAddresses((prev) => ({
         ...prev,

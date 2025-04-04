@@ -20,12 +20,14 @@ import {
   Divider,
 } from "@chakra-ui/react";
 import { FaUserShield, FaUser } from "react-icons/fa";
+import { usePermissions } from "../utils/hooks/usePermissions";
 
 const Users = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState(null);
   const router = useRouter();
   const toast = useToast();
+  const page = "/users";
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -61,7 +63,7 @@ const Users = () => {
     fetchUserRole();
   }, [router, toast]);
 
-  if (role !== "admin" && !isLoading) {
+  if (!usePermissions(page, role) && !isLoading) {
     return (
       <Container maxW="container.xl" py={10}>
         <Card>

@@ -52,8 +52,8 @@ const TabMenu = () => {
   };
 
   // Filtrar enlaces según el rol del usuario
-  const filteredLinks = menuLinks.filter((link) =>
-    link.roles.includes(roleName)
+  const filteredLinks = menuLinks.filter(
+    (link) => link.roles.length === 0 || link.roles.includes(roleName)
   );
 
   // Agregar el enlace de logout

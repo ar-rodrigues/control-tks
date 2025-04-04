@@ -23,6 +23,7 @@ import WorkSessionsTable from "../components/admin/WorkSessionsTable";
 import { checkUserRole } from "../actions/actions";
 import { toLocalDate } from "../utils/toLocalDate";
 import { useRouter } from "next/navigation";
+import { usePermissions } from "../utils/hooks/usePermissions";
 
 // Dynamically import components that use browser APIs
 const PieChart = dynamic(() => import("../components/admin/PieChart"), {
@@ -35,8 +36,8 @@ const LocationMap = dynamic(() => import("../components/admin/LocationMap"), {
 const AdminDashboard = () => {
   const [workSessions, setWorkSessions] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [role, setRole] = useState(null);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -50,11 +51,13 @@ const AdminDashboard = () => {
   const [filteredStatus, setFilteredStatus] = useState(null);
   const toast = useToast();
   const router = useRouter();
+  const page = "/admin";
 
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
         const { role } = await checkUserRole();
+
         if (!role) {
           toast({
             title: "Sesión expirada",
@@ -78,7 +81,7 @@ const AdminDashboard = () => {
         });
         router.push("/error");
       } finally {
-        setIsLoading(false);
+        setIsInitialLoading(false);
       }
     };
 
@@ -87,7 +90,10 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!role) return; // Don't fetch data if role is not set yet
+
       try {
+        setIsDataLoading(true);
         // Fetch work sessions
         const sessionsResponse = await fetch("/api/work-sessions/admin");
         const sessionsData = await sessionsResponse.json();
@@ -96,11 +102,20 @@ const AdminDashboard = () => {
         const usersResponse = await fetch("/api/users");
         const usersData = await usersResponse.json();
 
-        setWorkSessions(sessionsData.adminWorkSessions);
-        setUsers(usersData);
+        setWorkSessions(sessionsData.adminWorkSessions || []);
+        setUsers(usersData || []);
 
-        // Calculate stats
-        calculateStats(sessionsData.adminWorkSessions, usersData, selectedDate);
+        // Calculate stats only if we have data
+        if (
+          sessionsData.adminWorkSessions?.length > 0 &&
+          usersData?.length > 0
+        ) {
+          calculateStats(
+            sessionsData.adminWorkSessions,
+            usersData,
+            selectedDate
+          );
+        }
       } catch (error) {
         toast({
           title: "Error al cargar datos",
@@ -110,17 +125,19 @@ const AdminDashboard = () => {
           isClosable: true,
         });
       } finally {
-        setLoading(false);
+        setIsDataLoading(false);
       }
     };
 
-    if (role === "admin") {
+    if (usePermissions(page, role)) {
       fetchData();
     }
-  }, [role]);
+  }, [role, page, selectedDate]);
 
   useEffect(() => {
-    calculateStats(workSessions, users, selectedDate);
+    if (workSessions.length > 0 && users.length > 0) {
+      calculateStats(workSessions, users, selectedDate);
+    }
   }, [selectedDate, workSessions, users]);
 
   const calculateStats = (sessions, users, date) => {
@@ -160,10 +177,13 @@ const AdminDashboard = () => {
   };
 
   const getAvailableDates = () => {
+    if (!workSessions || workSessions.length === 0) {
+      return [selectedDate]; // Return current date if no sessions available
+    }
     return workSessions.map((session) => session.work_session_date);
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <Container maxW="container.xl" py={10}>
         <Flex justify="center" align="center" minH="60vh">
@@ -176,7 +196,7 @@ const AdminDashboard = () => {
     );
   }
 
-  if (role !== "admin") {
+  if (!usePermissions(page, role)) {
     return (
       <Container maxW="container.xl" py={10}>
         <Card>
@@ -197,7 +217,7 @@ const AdminDashboard = () => {
     );
   }
 
-  if (loading) {
+  if (isDataLoading) {
     return (
       <Container maxW="container.xl" py={10}>
         <Flex justify="center" align="center" minH="60vh">

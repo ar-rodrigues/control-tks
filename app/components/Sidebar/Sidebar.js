@@ -75,7 +75,9 @@ const Sidebar = () => {
       >
         <VStack align="stretch" spacing="6" w="100%">
           {menuLinks
-            .filter((link) => link.roles.includes(roleName))
+            .filter(
+              (link) => link.roles.length === 0 || link.roles.includes(roleName)
+            )
             .map((link) => (
               <SidebarLink
                 key={link.href}
