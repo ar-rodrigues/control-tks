@@ -1,5 +1,5 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from "next/server";
 
 export async function updateSession(request) {
   const supabase = createServerClient(
@@ -11,19 +11,31 @@ export async function updateSession(request) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value, options));
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth')) {
-    const url = new URL('/login', request.url);
+  const allowedRoutes = [
+    "/login",
+    "/auth",
+    "/manifest.json",
+    "/sw.js",
+    "/workbox-*.js",
+    "/service-worker.js",
+  ];
+
+  if (!user && !allowedRoutes.includes(request.nextUrl.pathname)) {
+    const url = new URL("/login", request.url);
     return NextResponse.redirect(url.toString());
   }
 
   return NextResponse.next();
 }
-

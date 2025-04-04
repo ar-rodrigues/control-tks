@@ -1,36 +1,45 @@
-'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { login } from '../actions/actions';
-import { Input, Button, Box, Heading, InputGroup, InputRightElement, IconButton, Text } from '@chakra-ui/react';
-import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { login } from "../actions/actions";
+import {
+  Input,
+  Button,
+  Box,
+  Heading,
+  InputGroup,
+  InputRightElement,
+  IconButton,
+  Text,
+} from "@chakra-ui/react";
+import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import InstallButton from "../components/InstallButton";
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const router = useRouter(); // Use Next.js router for client-side redirection
+  const router = useRouter();
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
       const result = await login(formData);
-      console.log(result)
+      console.log(result);
       if (!result.success) {
-        setError('Credenciales incorrectas. Intente otra vez.');
+        setError("Credenciales incorrectas. Intente otra vez.");
       } else {
-        // Redirect to home page on successful login
-        router.push('/');
+        router.push("/");
       }
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setTimeout(() => {
         setError(null);
@@ -49,17 +58,21 @@ const Login = () => {
           type="email"
           placeholder="Email"
           value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value.trim() })}
+          onChange={(e) =>
+            setFormData({ ...formData, email: e.target.value.trim() })
+          }
           required
           name="email"
           id="email"
         />
         <InputGroup>
           <Input
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value.trim() })}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value.trim() })
+            }
             required
             name="password"
             id="password"
@@ -70,7 +83,7 @@ const Login = () => {
               size="sm"
               onClick={() => setShowPassword(!showPassword)}
               icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? "Hide password" : "Show password"}
             />
           </InputRightElement>
         </InputGroup>
@@ -84,6 +97,7 @@ const Login = () => {
         </Button>
         {error && <Text color="red.500">{error}</Text>}
       </form>
+      <InstallButton />
     </Box>
   );
 };
