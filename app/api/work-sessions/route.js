@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../utils/supabase/server";
+import {
+  getCurrentTimeInMX,
+  toMXDateString,
+  calculateTimeDifference,
+} from "../../utils/dates/formatDateMX";
+import moment from "moment-timezone";
 
 // GET /api/work-sessions
 // Get the current active work session or the most recent work session for the authenticated user
@@ -28,9 +34,9 @@ export async function GET(request) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+    const today = toMXDateString(new Date());
+    const startOfDay = `${today}T00:00:00`;
+    const endOfDay = `${today}T23:59:59`;
 
     // First, try to find an active session for today (where check_out is null)
     let { data: activeSession, error: activeSessionError } = await supabase
@@ -113,13 +119,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    // Get current timestamp
-    const now = new Date().toISOString();
+    const now = getCurrentTimeInMX();
+    const today = toMXDateString(now);
 
     // Check if there's already an active session for this user today
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+    const startOfDay = `${today}T00:00:00`;
+    const endOfDay = `${today}T23:59:59`;
 
     const { data: existingSession, error: existingSessionError } =
       await supabase
@@ -152,9 +157,9 @@ export async function POST(request) {
       .insert([
         {
           profile_id: profile.id,
-          check_in: now,
+          check_in: now.toISOString(),
           check_in_location,
-          created_at: now,
+          created_at: now.toISOString(),
         },
       ])
       .select()
@@ -205,9 +210,7 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    // Get current timestamp
-    const now = new Date();
-    const nowISOString = now.toISOString();
+    const now = getCurrentTimeInMX();
 
     // Find the active session for the user
     const { data: activeSession, error: sessionError } = await supabase
@@ -227,22 +230,14 @@ export async function PATCH(request) {
       );
     }
 
-    // Calculate total hours
-    const checkIn = new Date(activeSession.check_in);
-    const diffMs = now - checkIn;
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-    const totalHours = `${diffHours.toString().padStart(2, "0")}:${diffMinutes
-      .toString()
-      .padStart(2, "0")}:${diffSeconds.toString().padStart(2, "0")}`;
+    const checkIn = moment(activeSession.check_in).tz("America/Mexico_City");
+    const totalHours = calculateTimeDifference(checkIn, now);
 
     // Update the session with check out info
     const { data: updatedSession, error: updateError } = await supabase
       .from("work_sessions")
       .update({
-        check_out: nowISOString,
+        check_out: now.toISOString(),
         check_out_location,
         total_hours: totalHours,
       })

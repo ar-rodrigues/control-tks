@@ -1,20 +1,15 @@
 import { Text, VStack } from "@chakra-ui/react";
+import moment from "moment-timezone";
 
 const TimeDisplay = ({ currentTime, currentDate }) => {
   const formatTime = (date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    return moment(date).tz("America/Mexico_City").format("HH:mm");
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+    return moment(date)
+      .tz("America/Mexico_City")
+      .format("DD [de] MMMM [de] YYYY");
   };
 
   return (

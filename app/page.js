@@ -13,6 +13,7 @@ import {
 } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+import { toMXTimeString, getCurrentTimeInMX } from "./utils/dates/formatDateMX";
 
 // Components
 import TimeDisplay from "./components/Home/TimeDisplay";
@@ -23,12 +24,12 @@ import CheckButton from "./components/Home/CheckButton";
 const Map = dynamic(() => import("./components/Home/Map"), { ssr: false });
 
 const useTimeTracking = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(getCurrentTimeInMX());
+  const [currentDate, setCurrentDate] = useState(getCurrentTimeInMX());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date();
+      const now = getCurrentTimeInMX();
       setCurrentTime(now);
       setCurrentDate(now);
     }, 1000);
@@ -140,11 +141,7 @@ const Home = () => {
   }, [router]);
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    return toMXTimeString(date);
   };
 
   const handleCheckInOut = async () => {
