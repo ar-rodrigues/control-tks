@@ -1,17 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Button, Box, Text, Icon } from "@chakra-ui/react";
+import { Button, Box, Text } from "@chakra-ui/react";
 import { DownloadIcon } from "@chakra-ui/icons";
 
 const InstallButton = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
 
   useEffect(() => {
-    let deferredPrompt;
-
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
-      deferredPrompt = e;
+      setDeferredPrompt(e);
+      // Show the install button only for Android
       if (navigator.userAgent.includes("Android")) {
         setShowInstallButton(true);
       }
@@ -39,9 +39,8 @@ const InstallButton = () => {
       return false;
     };
 
-    if (!checkInstallation()) {
-      setShowInstallButton(true);
-    }
+    // Initialize button visibility
+    setShowInstallButton(!checkInstallation());
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -57,15 +56,15 @@ const InstallButton = () => {
 
   const handleInstallClick = () => {
     if (navigator.userAgent.includes("Android")) {
-      if (window.deferredPrompt) {
-        window.deferredPrompt.prompt();
-        window.deferredPrompt.userChoice.then((choiceResult) => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
           if (choiceResult.outcome === "accepted") {
-            console.log("User accepted the A2HS prompt");
+            console.log("Usuario aceptó la instalación");
           } else {
-            console.log("User dismissed the A2HS prompt");
+            console.log("Usuario rechazó la instalación");
           }
-          window.deferredPrompt = null;
+          setDeferredPrompt(null);
         });
       }
     } else if (
@@ -82,7 +81,7 @@ const InstallButton = () => {
 
   return (
     <Box
-      className="fixed bottom-4 right-4 z-50"
+      className="fixed z-50 bottom-4 right-4"
       style={{
         backdropFilter: "blur(8px)",
         backgroundColor: "rgba(255, 255, 255, 0.8)",
