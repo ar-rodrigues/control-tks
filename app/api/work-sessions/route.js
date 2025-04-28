@@ -34,9 +34,17 @@ export async function GET(request) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const today = toMXDateString(new Date());
-    const startOfDay = `${today}T00:00:00`;
-    const endOfDay = `${today}T23:59:59`;
+    // Get current time in Mexico City
+    const now = getCurrentTimeInMX();
+    const today = now.format("YYYY-MM-DD");
+    const startOfDay = moment
+      .tz(today, "America/Mexico_City")
+      .startOf("day")
+      .format();
+    const endOfDay = moment
+      .tz(today, "America/Mexico_City")
+      .endOf("day")
+      .format();
 
     // First, try to find an active session for today (where check_out is null)
     let { data: activeSession, error: activeSessionError } = await supabase
