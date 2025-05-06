@@ -43,6 +43,11 @@ const useTimeTracking = () => {
 const useLocationTracking = () => {
   const getCurrentLocation = () => {
     return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by your browser"));
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           resolve({
@@ -50,8 +55,31 @@ const useLocationTracking = () => {
             lng: position.coords.longitude,
           });
         },
-        reject,
-        { enableHighAccuracy: true }
+        (error) => {
+          let errorMessage = "Error getting location";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage =
+                "Location access was denied. Please enable location services and try again.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage =
+                "Location information is unavailable. Please try again.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Location request timed out. Please try again.";
+              break;
+            default:
+              errorMessage =
+                "An unknown error occurred while getting location.";
+          }
+          reject(new Error(errorMessage));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
       );
     });
   };
@@ -150,92 +178,142 @@ const Home = () => {
     setIsProcessing(true);
     try {
       const now = new Date();
-      const location = await getCurrentLocation();
-      setCurrentLocation(location);
-
-      if (!workSession?.check_in || workSession?.check_out) {
-        // Check In
-        const response = await fetch("/api/work-sessions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            check_in_location: location,
-          }),
+      let location;
+      try {
+        location = await getCurrentLocation();
+        setCurrentLocation(location);
+      } catch (error) {
+        toast({
+          title: "Error de ubicación",
+          description: error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
         });
+        setIsProcessing(false);
+        return;
+      }
 
-        const data = await response.json();
+      // Get address from coordinates
+      try {
+        const addressResponse = await fetch(
+          `/api/location?lat=${location.lat}&lon=${location.lng}`
+        );
+        const addressData = await addressResponse.json();
 
-        if (response.ok) {
-          setCheckInTime(formatTime(now));
-          setWorkSession(data.workSession);
-          setCheckOutTime(null);
-          setHoursWorked(null);
-
+        if (addressData.error) {
           toast({
-            title: "Check-in exitoso",
-            description: "Tu ubicación ha sido registrada",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-            position: "top",
-          });
-        } else {
-          toast({
-            title: "Check-in fallido",
-            description: data.error || "Ocurrió un error",
-            status: "error",
-            duration: 3000,
+            title: "Servicio de ubicación temporalmente no disponible",
+            description:
+              "El servicio de mapas está temporalmente fuera de línea. Se registrará solo la ubicación con coordenadas. Por favor, intente nuevamente en unos momentos.",
+            status: "warning",
+            duration: 5000,
             isClosable: true,
             position: "top",
           });
         }
-      } else {
-        // Check Out
-        const response = await fetch("/api/work-sessions", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            check_out_location: location,
-          }),
-        });
 
-        const data = await response.json();
+        const address =
+          addressData.address ||
+          `Ubicación (${location.lat.toFixed(6)}, ${location.lng.toFixed(6)})`;
 
-        if (response.ok) {
-          setCheckOutTime(formatTime(now));
-          setWorkSession(data.workSession);
-          setHoursWorked(data.workSession.total_hours);
-          setCurrentLocation(null);
-
-          toast({
-            title: "Check-out exitoso",
-            description: "Tu hora de salida ha sido registrada",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-            position: "top",
+        if (!workSession?.check_in || workSession?.check_out) {
+          // Check In
+          const response = await fetch("/api/work-sessions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              check_in_location: location,
+              check_in_address: address,
+            }),
           });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            setCheckInTime(formatTime(now));
+            setWorkSession(data.workSession);
+            setCheckOutTime(null);
+            setHoursWorked(null);
+
+            toast({
+              title: "Check-in exitoso",
+              description: "Tu ubicación ha sido registrada",
+              status: "success",
+              duration: 3000,
+              isClosable: true,
+              position: "top",
+            });
+          } else {
+            toast({
+              title: "Check-in fallido",
+              description: data.error || "Ocurrió un error",
+              status: "error",
+              duration: 3000,
+              isClosable: true,
+              position: "top",
+            });
+          }
         } else {
-          toast({
-            title: "Check-out fallido",
-            description: data.error || "Ocurrió un error",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-            position: "top",
+          // Check Out
+          const response = await fetch("/api/work-sessions", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              check_out_location: location,
+              check_out_address: address,
+            }),
           });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            setCheckOutTime(formatTime(now));
+            setWorkSession(data.workSession);
+            setHoursWorked(data.workSession.total_hours);
+            setCurrentLocation(null);
+
+            toast({
+              title: "Check-out exitoso",
+              description: "Tu hora de salida ha sido registrada",
+              status: "success",
+              duration: 3000,
+              isClosable: true,
+              position: "top",
+            });
+          } else {
+            toast({
+              title: "Check-out fallido",
+              description: data.error || "Ocurrió un error",
+              status: "error",
+              duration: 3000,
+              isClosable: true,
+              position: "top",
+            });
+          }
         }
+      } catch (error) {
+        console.error("Error getting address:", error);
+        toast({
+          title: "Error",
+          description:
+            "No se pudo obtener la dirección. Por favor, intente nuevamente.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
       }
     } catch (error) {
       console.error("Error:", error);
       toast({
         title: "Error",
-        description:
-          "No se pudo obtener su ubicación. Por favor, habilite los servicios de ubicación.",
+        description: error.message || "Ocurrió un error inesperado",
         status: "error",
         duration: 3000,
         isClosable: true,

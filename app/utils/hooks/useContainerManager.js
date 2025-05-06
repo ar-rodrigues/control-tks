@@ -1,85 +1,107 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { toZonedTime } from "date-fns-tz";
 
 export const useContainerManager = (predefinedContainers, predefinedItems) => {
   const [containers, setContainers] = useState([]);
   const [currentContainerId, setCurrentContainerId] = useState(null);
-  const [selectedContainer, setSelectedContainer] = useState('');
-  const [selectedItem, setSelectedItem] = useState('');
+  const [selectedContainer, setSelectedContainer] = useState("");
+  const [selectedItem, setSelectedItem] = useState("");
   const [showAddContainerModal, setShowAddContainerModal] = useState(false);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
-  
-  const today = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'America/Mexico_City' })
-  const [selectedDates, setSelectedDates] = useState([new Date(), new Date()]);
 
+  const timeZone = "America/Mexico_City";
+  const today = toZonedTime(new Date(), timeZone).toLocaleDateString("es-MX", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    timeZone,
+  });
+  const [selectedDates, setSelectedDates] = useState([
+    toZonedTime(new Date(), timeZone),
+    toZonedTime(new Date(), timeZone),
+  ]);
 
   // Handle date range change
   const handleDateRangeChange = (containerId, newDates) => {
-    setContainers(prevContainers => 
-      prevContainers.map(container => 
+    setContainers((prevContainers) =>
+      prevContainers.map((container) =>
         container.id === containerId
-          ? { ...container, event: newDates }
+          ? {
+              ...container,
+              event: newDates.map((date) => toZonedTime(date, timeZone)),
+            }
           : container
       )
     );
   };
 
-
   // Helper function to find containers or items
   const findValueOfItems = (id, type) => {
-    if (type === 'container') {
-      return containers.find(item => item.id === id);
+    if (type === "container") {
+      return containers.find((item) => item.id === id);
     }
-    if (type === 'item') {
-      return containers.find(container =>
-        container.items.find(item => item.id === id)
+    if (type === "item") {
+      return containers.find((container) =>
+        container.items.find((item) => item.id === id)
       );
     }
   };
 
   // Get item title based on its ID
   const findItemTitle = (id) => {
-    const container = findValueOfItems(id, 'item');
-    if (!container) return '';
+    const container = findValueOfItems(id, "item");
+    if (!container) return "";
     const item = container.items.find((item) => item.id === id);
-    return item ? item.title : '';
+    return item ? item.title : "";
   };
 
   // Get container title based on its ID
   const findContainerTitle = (id) => {
-    const container = findValueOfItems(id, 'container');
-    return container ? container.title : '';
+    const container = findValueOfItems(id, "container");
+    return container ? container.title : "";
   };
 
   // Get items in a container based on its ID
   const findContainerItems = (id) => {
-    const container = findValueOfItems(id, 'container');
+    const container = findValueOfItems(id, "container");
     return container ? container.items : [];
   };
 
   const onAddContainer = () => {
     if (!selectedContainer) return;
-    const newContainer = predefinedContainers.find(c => c.id === selectedContainer);
+    const newContainer = predefinedContainers.find(
+      (c) => c.id === selectedContainer
+    );
     if (!newContainer) return;
 
-    
-    setContainers([...containers, { ...newContainer, items: [], event: [ new Date(), new Date() ] }]);
-    setSelectedContainer('');
+    setContainers([
+      ...containers,
+      {
+        ...newContainer,
+        items: [],
+        event: [
+          toZonedTime(new Date(), timeZone),
+          toZonedTime(new Date(), timeZone),
+        ],
+      },
+    ]);
+    setSelectedContainer("");
     setShowAddContainerModal(false); // Close modal after adding container
   };
 
   const onAddItem = () => {
     if (!selectedItem || !currentContainerId) return;
-    const newItem = predefinedItems.find(i => i.id === selectedItem);
+    const newItem = predefinedItems.find((i) => i.id === selectedItem);
     if (!newItem) return;
 
-    const updatedContainers = containers.map(container => {
+    const updatedContainers = containers.map((container) => {
       if (container.id === currentContainerId) {
         return { ...container, items: [...container.items, newItem] };
       }
       return container;
     });
     setContainers(updatedContainers);
-    setSelectedItem('');
+    setSelectedItem("");
     setShowAddItemModal(false); // Close modal after adding item
   };
 
@@ -98,11 +120,11 @@ export const useContainerManager = (predefinedContainers, predefinedItems) => {
     setShowAddItemModal,
     onAddContainer,
     onAddItem,
-    findValueOfItems, 
+    findValueOfItems,
     findItemTitle,
     findContainerTitle,
     findContainerItems,
     selectedDates,
-    handleDateRangeChange
+    handleDateRangeChange,
   };
 };

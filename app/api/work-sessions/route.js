@@ -104,7 +104,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const supabase = createClient();
-    const { check_in_location } = await request.json();
+    const { check_in_location, check_in_address } = await request.json();
 
     // Get authenticated user
     const {
@@ -167,6 +167,7 @@ export async function POST(request) {
           profile_id: profile.id,
           check_in: now.toISOString(),
           check_in_location,
+          check_in_address,
           created_at: now.toISOString(),
         },
       ])
@@ -195,7 +196,7 @@ export async function POST(request) {
 export async function PATCH(request) {
   try {
     const supabase = createClient();
-    const { check_out_location } = await request.json();
+    const { check_out_location, check_out_address } = await request.json();
 
     // Get authenticated user
     const {
@@ -247,6 +248,7 @@ export async function PATCH(request) {
       .update({
         check_out: now.toISOString(),
         check_out_location,
+        check_out_address,
         total_hours: totalHours,
       })
       .eq("id", activeSession.id)

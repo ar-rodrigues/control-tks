@@ -1,4 +1,9 @@
+import { toZonedTime } from "date-fns-tz";
+import { format } from "date-fns";
+
 export const toLocalDate = (dateString, locale = "es-MX", options = {}) => {
+  const timeZone = "America/Mexico_City";
+  const dateObj = toZonedTime(new Date(dateString + "T00:00:00Z"), timeZone);
   // Default options
   const defaultOptions = {
     weekday: "long",
@@ -6,9 +11,9 @@ export const toLocalDate = (dateString, locale = "es-MX", options = {}) => {
     month: "long",
     day: "numeric",
   };
-
-  // Create date at 11pm to avoid timezone issues
-  const dateObj = new Date(`${dateString}T11:59:59`);
-
-  return dateObj.toLocaleDateString(locale, { ...defaultOptions, ...options });
+  return dateObj.toLocaleDateString(locale, {
+    ...defaultOptions,
+    ...options,
+    timeZone,
+  });
 };

@@ -24,6 +24,7 @@ import { checkUserRole } from "../actions/actions";
 import { toLocalDate } from "../utils/toLocalDate";
 import { useRouter } from "next/navigation";
 import { usePermissions } from "../utils/hooks/usePermissions";
+import MinimalCalendarPicker from "../components/admin/MinimalCalendarPicker";
 
 // Dynamically import components that use browser APIs
 const PieChart = dynamic(() => import("../components/admin/PieChart"), {
@@ -231,26 +232,30 @@ const AdminDashboard = () => {
   }
 
   return (
-    <Container maxW="container.xl" py={8}>
-      <Heading mb={6}>Panel de Administración</Heading>
+    <Container
+      maxW={{ base: "100%", md: "container.xl" }}
+      py={{ base: 4, md: 8 }}
+      px={{ base: 1, md: 4 }}
+    >
+      <Heading mb={6} fontSize={{ base: "xl", md: "2xl" }}>
+        Panel de Administración
+      </Heading>
 
       {/* Date Selection */}
-      <Box mb={6}>
-        <Select
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          maxW="300px"
-        >
-          {getAvailableDates().map((date) => (
-            <option key={date} value={date}>
-              {toLocalDate(date)}
-            </option>
-          ))}
-        </Select>
+      <Box mb={6} maxW={{ base: "100%", md: "300px" }}>
+        <MinimalCalendarPicker
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          availableDates={getAvailableDates()}
+        />
       </Box>
 
       {/* Stats Cards */}
-      <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6} mb={8}>
+      <SimpleGrid
+        columns={{ base: 1, sm: 2, md: 4 }}
+        spacing={{ base: 3, md: 6 }}
+        mb={8}
+      >
         <StatsCard label="Total de Empleados" value={stats.totalEmployees} />
         <StatsCard
           label="A Tiempo Hoy"
@@ -270,13 +275,31 @@ const AdminDashboard = () => {
       </SimpleGrid>
 
       {/* Charts Section */}
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
+      <SimpleGrid
+        columns={{ base: 1, md: 2 }}
+        spacing={{ base: 3, md: 6 }}
+        mb={8}
+      >
         <Card>
           <CardBody>
-            <Heading size="md" mb={4}>
+            <Heading size="md" mb={4} fontSize={{ base: "md", md: "lg" }}>
+              Mapa de Ubicaciones
+            </Heading>
+            <Box h={{ base: "220px", md: "300px" }} w="100%" overflowX="auto">
+              <LocationMap
+                workSessions={workSessions}
+                selectedDate={selectedDate}
+              />
+            </Box>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody>
+            <Heading size="md" mb={4} fontSize={{ base: "md", md: "lg" }}>
               Distribución de Asistencia
             </Heading>
-            <Box h="300px">
+            <Box h={{ base: "220px", md: "300px" }} w="100%" overflowX="auto">
               <PieChart
                 data={[
                   { name: "A tiempo", value: stats.onTimePercentage },
@@ -286,20 +309,27 @@ const AdminDashboard = () => {
                 onChartClick={handleChartClick}
               />
             </Box>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody>
-            <Heading size="md" mb={4}>
-              Mapa de Ubicaciones
-            </Heading>
-            <Box h="300px">
-              <LocationMap
-                workSessions={workSessions}
-                selectedDate={selectedDate}
-              />
-            </Box>
+            {/* Percentages row */}
+            <Flex mt={4} justify="center" gap={4} wrap="wrap">
+              <Box display="flex" alignItems="center" gap={1}>
+                <Box w={3} h={3} borderRadius="full" bg="#48BB78" />
+                <Text fontSize="sm">
+                  A tiempo: {stats.onTimePercentage.toFixed(1)}%
+                </Text>
+              </Box>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Box w={3} h={3} borderRadius="full" bg="#F56565" />
+                <Text fontSize="sm">
+                  Tardanza: {stats.latePercentage.toFixed(1)}%
+                </Text>
+              </Box>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Box w={3} h={3} borderRadius="full" bg="#718096" />
+                <Text fontSize="sm">
+                  Ausente: {stats.absentPercentage.toFixed(1)}%
+                </Text>
+              </Box>
+            </Flex>
           </CardBody>
         </Card>
       </SimpleGrid>

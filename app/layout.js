@@ -34,7 +34,7 @@ export default async function RootLayout({ children }) {
         <Providers>
           <Box display="flex" minH="100vh" overflowX="auto">
             {!isMobile && <Sidebar />}
-            <Box flex="1" p="4">
+            <Box flex="1" p="4" mb={10}>
               {children}
             </Box>
             {isMobile && <TabMenu />}

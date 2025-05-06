@@ -22,9 +22,8 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.45.2",
     "@tanstack/react-table": "^8.20.5",
-    "chakra-dayzed-datepicker": "^0.3.0",
     "date-fns": "^4.1.0",
-    "dayzed": "^3.2.3",
+    "date-fns-tz": "^3.2.0",
     "framer-motion": "^11.3.21",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
@@ -36,13 +35,15 @@
     "react": "^18",
     "react-big-calendar": "^1.14.1",
     "react-csv": "^2.2.2",
+    "react-datepicker": "^8.3.0",
     "react-dom": "^18",
     "react-dropzone": "^14.2.3",
     "react-icons": "^5.3.0",
     "react-leaflet": "^4.2.1",
     "react-select": "^5.8.0",
     "recharts": "^2.15.1",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^8",

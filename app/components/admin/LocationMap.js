@@ -16,29 +16,14 @@ const LocationMap = ({ workSessions, selectedDate }) => {
       );
       const dateSessions = dateData?.employees_sessions || [];
 
-      const locationPromises = dateSessions
+      const locations = dateSessions
         .filter((session) => session.first_check_in_location)
-        .map(async (session) => {
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${session.first_check_in_location.lat}&lon=${session.first_check_in_location.lng}`
-            );
-            const data = await response.json();
-            return {
-              ...session,
-              address: data.display_name,
-            };
-          } catch (error) {
-            console.error("Error fetching location:", error);
-            return {
-              ...session,
-              address: "Ubicación no disponible",
-            };
-          }
-        });
+        .map((session) => ({
+          ...session,
+          address: session.first_check_in_address || "Ubicación no disponible",
+        }));
 
-      const resolvedLocations = await Promise.all(locationPromises);
-      setLocations(resolvedLocations);
+      setLocations(locations);
     };
 
     fetchLocations();

@@ -17,9 +17,15 @@ import {
   CardBody,
   Button,
   Skeleton,
+  CardHeader,
+  Select,
+  Text,
+  Tooltip,
+  VStack,
 } from "@chakra-ui/react";
 import { SearchIcon, CloseIcon } from "@chakra-ui/icons";
 import { useState, useEffect } from "react";
+import { useBreakpointValue } from "@chakra-ui/react";
 
 const WorkSessionsTable = ({
   workSessions,
@@ -29,7 +35,15 @@ const WorkSessionsTable = ({
   setFilteredStatus,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [locationAddresses, setLocationAddresses] = useState({});
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const [expandedAddresses, setExpandedAddresses] = useState({});
+
+  const toggleAddress = (userId, field) => {
+    setExpandedAddresses((prev) => ({
+      ...prev,
+      [`${userId}_${field}`]: !prev[`${userId}_${field}`],
+    }));
+  };
 
   const getDateSessions = () => {
     const dateData = workSessions.find(
@@ -39,16 +53,20 @@ const WorkSessionsTable = ({
   };
 
   const getStatus = (session) => {
-    if (!session) return { status: "Ausente", color: "gray" };
+    if (!session) {
+      return { status: "No registrado", color: "gray" };
+    }
 
     const checkInTime = new Date(session.first_check_in);
     const isOnTime =
       checkInTime.getHours() < 9 ||
       (checkInTime.getHours() === 9 && checkInTime.getMinutes() <= 10);
 
-    return isOnTime
-      ? { status: "A tiempo", color: "green" }
-      : { status: "Tardanza", color: "red" };
+    if (isOnTime) {
+      return { status: "A tiempo", color: "green" };
+    } else {
+      return { status: "Tardanza", color: "red" };
+    }
   };
 
   const formatTime = (dateString) => {
@@ -58,49 +76,6 @@ const WorkSessionsTable = ({
       minute: "2-digit",
     });
   };
-
-  const fetchLocation = async (session) => {
-    if (!session?.first_check_in_location) return;
-
-    const locationKey = `${session.first_check_in_location.lat},${session.first_check_in_location.lng}`;
-
-    // Skip if already cached
-    if (locationAddresses[locationKey]) return;
-
-    try {
-      const response = await fetch(
-        `/api/location?lat=${session.first_check_in_location.lat}&lon=${session.first_check_in_location.lng}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch location");
-      }
-
-      const data = await response.json();
-      const address = data.address;
-
-      setLocationAddresses((prev) => ({
-        ...prev,
-        [locationKey]: address,
-      }));
-    } catch (error) {
-      console.error("Error fetching location:", error);
-      setLocationAddresses((prev) => ({
-        ...prev,
-        [locationKey]: "Ubicación no disponible",
-      }));
-    }
-  };
-
-  // Fetch locations when component mounts or sessions change
-  useEffect(() => {
-    const dateSessions = getDateSessions();
-    dateSessions.forEach((session) => {
-      if (session?.first_check_in_location) {
-        fetchLocation(session);
-      }
-    });
-  }, [workSessions, selectedDate]);
 
   const dateSessions = getDateSessions();
 
@@ -121,80 +96,289 @@ const WorkSessionsTable = ({
 
   return (
     <Card>
-      <CardBody>
-        <Flex justify="space-between" align="center" mb={4}>
-          <Heading size="md">Sesiones de Trabajo</Heading>
-          <Flex align="center" gap={2}>
-            {filteredStatus && (
-              <Button
-                size="sm"
-                leftIcon={<CloseIcon />}
-                onClick={() => setFilteredStatus(null)}
-                variant="ghost"
-              >
-                Limpiar filtro
-              </Button>
-            )}
-            <Box>
-              <Input
-                placeholder="Buscar empleado..."
-                size="sm"
-                maxW="300px"
-                mr={2}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <IconButton aria-label="Buscar" icon={<SearchIcon />} size="sm" />
-            </Box>
+      <CardHeader>
+        <Flex
+          direction={{ base: "column", md: "row" }}
+          justify="space-between"
+          align={{ base: "stretch", md: "center" }}
+          gap={4}
+        >
+          <Heading size="md" fontSize={{ base: "lg", md: "xl" }}>
+            Registro de Asistencia
+          </Heading>
+          <Flex
+            gap={2}
+            direction={{ base: "column", sm: "row" }}
+            w={{ base: "100%", md: "auto" }}
+          >
+            <Input
+              placeholder="Buscar empleado..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              maxW={{ base: "100%", md: "300px" }}
+              fontSize={{ base: "sm", md: "md" }}
+              py={{ base: 2, md: 3 }}
+            />
+            <Select
+              value={filteredStatus || ""}
+              onChange={(e) => setFilteredStatus(e.target.value || null)}
+              maxW={{ base: "100%", md: "200px" }}
+              fontSize={{ base: "sm", md: "md" }}
+              py={{ base: 2, md: 3 }}
+            >
+              <option value="">Todos los estados</option>
+              <option value="A tiempo">A tiempo</option>
+              <option value="Tardanza">Tardanza</option>
+              <option value="No registrado">No registrado</option>
+            </Select>
           </Flex>
         </Flex>
-
-        <Box overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th>Empleado</Th>
-                <Th>Primer Check In</Th>
-                <Th>Último Check Out</Th>
-                <Th>Estado</Th>
-                <Th>Ubicación</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
+      </CardHeader>
+      <CardBody p={{ base: 2, md: 4 }}>
+        {isMobile ? (
+          // Card/List view for mobile
+          <Box maxH="60vh" overflowY="auto">
+            <VStack spacing={4} align="stretch">
               {filteredUsers.map((user) => {
                 const userSession = dateSessions.find(
                   (session) => session.profile_id === user.id
                 );
                 const status = getStatus(userSession);
-                const locationKey = userSession?.first_check_in_location
-                  ? `${userSession.first_check_in_location.lat},${userSession.first_check_in_location.lng}`
-                  : null;
-
                 return (
-                  <Tr key={user.id}>
-                    <Td>{user.full_name}</Td>
-                    <Td>{formatTime(userSession?.first_check_in)}</Td>
-                    <Td>{formatTime(userSession?.last_check_out)}</Td>
-                    <Td>
+                  <Box
+                    key={user.id}
+                    borderWidth="1px"
+                    borderRadius="lg"
+                    p={3}
+                    boxShadow="sm"
+                    bg="gray.50"
+                  >
+                    <Text fontWeight="bold" fontSize="md">
+                      {user.full_name}
+                    </Text>
+                    <Flex mt={1} wrap="wrap" fontSize="sm" color="gray.700">
+                      <Box flex="1 1 50%">
+                        <Text fontWeight="medium">Primer Check In:</Text>
+                        <Text>{formatTime(userSession?.first_check_in)}</Text>
+                      </Box>
+                      <Box flex="1 1 50%">
+                        <Text fontWeight="medium">Último Check Out:</Text>
+                        <Text>{formatTime(userSession?.last_check_out)}</Text>
+                      </Box>
+                    </Flex>
+                    <Flex mt={1} align="center" gap={2}>
                       <Badge colorScheme={status.color}>{status.status}</Badge>
-                    </Td>
-                    <Td>
-                      {locationKey ? (
-                        locationAddresses[locationKey] ? (
-                          locationAddresses[locationKey]
-                        ) : (
-                          <Skeleton height="20px" width="200px" />
-                        )
+                    </Flex>
+                    <Box mt={2}>
+                      <Text fontSize="sm" fontWeight="medium">
+                        Dirección:
+                      </Text>
+                      {userSession ? (
+                        <Box>
+                          <Tooltip
+                            label={userSession.first_check_in_address}
+                            isDisabled={
+                              expandedAddresses[`${user.id}_checkin`] ||
+                              !userSession.first_check_in_address ||
+                              userSession.first_check_in_address.length < 30
+                            }
+                          >
+                            <Text
+                              fontSize="sm"
+                              color="gray.600"
+                              mb={1}
+                              maxW="220px"
+                              isTruncated={
+                                !expandedAddresses[`${user.id}_checkin`]
+                              }
+                              cursor={
+                                userSession.first_check_in_address
+                                  ? "pointer"
+                                  : "default"
+                              }
+                              onClick={() =>
+                                userSession.first_check_in_address &&
+                                toggleAddress(user.id, "checkin")
+                              }
+                              title={
+                                expandedAddresses[`${user.id}_checkin`]
+                                  ? undefined
+                                  : userSession.first_check_in_address
+                              }
+                            >
+                              Entrada:{" "}
+                              {userSession.first_check_in_address ||
+                                "No disponible"}
+                            </Text>
+                          </Tooltip>
+                          {userSession.last_check_out && (
+                            <Tooltip
+                              label={userSession.last_check_out_address}
+                              isDisabled={
+                                expandedAddresses[`${user.id}_checkout`] ||
+                                !userSession.last_check_out_address ||
+                                userSession.last_check_out_address.length < 30
+                              }
+                            >
+                              <Text
+                                fontSize="sm"
+                                color="gray.600"
+                                isTruncated={
+                                  !expandedAddresses[`${user.id}_checkout`]
+                                }
+                                maxW="220px"
+                                cursor={
+                                  userSession.last_check_out_address
+                                    ? "pointer"
+                                    : "default"
+                                }
+                                onClick={() =>
+                                  userSession.last_check_out_address &&
+                                  toggleAddress(user.id, "checkout")
+                                }
+                                title={
+                                  expandedAddresses[`${user.id}_checkout`]
+                                    ? undefined
+                                    : userSession.last_check_out_address
+                                }
+                              >
+                                Salida:{" "}
+                                {userSession.last_check_out_address ||
+                                  "No disponible"}
+                              </Text>
+                            </Tooltip>
+                          )}
+                        </Box>
                       ) : (
-                        "N/A"
+                        <Text fontSize="sm">No registrado</Text>
                       )}
-                    </Td>
-                  </Tr>
+                    </Box>
+                  </Box>
                 );
               })}
-            </Tbody>
-          </Table>
-        </Box>
+            </VStack>
+          </Box>
+        ) : (
+          // Table view for desktop
+          <Box overflowX="auto">
+            <Table variant="simple" size="sm">
+              <Thead>
+                <Tr>
+                  <Th fontSize="md">Empleado</Th>
+                  <Th fontSize="md">Primer Check In</Th>
+                  <Th fontSize="md">Último Check Out</Th>
+                  <Th fontSize="md">Estado</Th>
+                  <Th fontSize="md">Dirección</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {filteredUsers.map((user) => {
+                  const userSession = dateSessions.find(
+                    (session) => session.profile_id === user.id
+                  );
+                  const status = getStatus(userSession);
+                  return (
+                    <Tr key={user.id}>
+                      <Td fontSize="sm">{user.full_name}</Td>
+                      <Td fontSize="sm">
+                        {formatTime(userSession?.first_check_in)}
+                      </Td>
+                      <Td fontSize="sm">
+                        {formatTime(userSession?.last_check_out)}
+                      </Td>
+                      <Td fontSize="sm">
+                        <Badge colorScheme={status.color}>
+                          {status.status}
+                        </Badge>
+                      </Td>
+                      <Td fontSize="sm">
+                        {userSession ? (
+                          <Box>
+                            <Tooltip
+                              label={userSession.first_check_in_address}
+                              isDisabled={
+                                expandedAddresses[`${user.id}_checkin`] ||
+                                !userSession.first_check_in_address ||
+                                userSession.first_check_in_address.length < 30
+                              }
+                            >
+                              <Text
+                                fontSize="sm"
+                                color="gray.600"
+                                mb={1}
+                                maxW="180px"
+                                isTruncated={
+                                  !expandedAddresses[`${user.id}_checkin`]
+                                }
+                                cursor={
+                                  userSession.first_check_in_address
+                                    ? "pointer"
+                                    : "default"
+                                }
+                                onClick={() =>
+                                  userSession.first_check_in_address &&
+                                  toggleAddress(user.id, "checkin")
+                                }
+                                title={
+                                  expandedAddresses[`${user.id}_checkin`]
+                                    ? undefined
+                                    : userSession.first_check_in_address
+                                }
+                              >
+                                <Text fontWeight={"bold"}>Entrada: </Text>
+                                {userSession.first_check_in_address ||
+                                  "No disponible"}
+                              </Text>
+                            </Tooltip>
+                            {userSession.last_check_out && (
+                              <Tooltip
+                                label={userSession.last_check_out_address}
+                                isDisabled={
+                                  expandedAddresses[`${user.id}_checkout`] ||
+                                  !userSession.last_check_out_address ||
+                                  userSession.last_check_out_address.length < 30
+                                }
+                              >
+                                <Text
+                                  fontSize="sm"
+                                  color="gray.600"
+                                  isTruncated={
+                                    !expandedAddresses[`${user.id}_checkout`]
+                                  }
+                                  maxW="180px"
+                                  cursor={
+                                    userSession.last_check_out_address
+                                      ? "pointer"
+                                      : "default"
+                                  }
+                                  onClick={() =>
+                                    userSession.last_check_out_address &&
+                                    toggleAddress(user.id, "checkout")
+                                  }
+                                  title={
+                                    expandedAddresses[`${user.id}_checkout`]
+                                      ? undefined
+                                      : userSession.last_check_out_address
+                                  }
+                                >
+                                  Salida:{" "}
+                                  {userSession.last_check_out_address ||
+                                    "No disponible"}
+                                </Text>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        ) : (
+                          "No registrado"
+                        )}
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          </Box>
+        )}
       </CardBody>
     </Card>
   );

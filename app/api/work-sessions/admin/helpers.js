@@ -1,5 +1,6 @@
 import { createClient } from "../../../utils/supabase/server";
 import { checkBackendPermission } from "@/app/utils/permissions";
+import moment from "moment-timezone";
 
 // Helper function to validate user authentication and permissions
 export const validateUserPermissions = async (user) => {
@@ -32,7 +33,15 @@ export const buildWorkSessionsQuery = (supabase, params) => {
     .from("work_sessions")
     .select(
       `
-      *,
+      id,
+      profile_id,
+      check_in,
+      check_in_location,
+      check_in_address,
+      check_out,
+      check_out_location,
+      check_out_address,
+      total_hours,
       profiles:profile_id (
         id,
         full_name,
@@ -62,7 +71,10 @@ export const processWorkSessions = (allWorkSessions) => {
   const sessionsByDay = {};
 
   allWorkSessions.forEach((session) => {
-    const sessionDate = session.check_in.split("T")[0];
+    // Always extract the date in Mexico City time zone
+    const sessionDate = moment(session.check_in)
+      .tz("America/Mexico_City")
+      .format("YYYY-MM-DD");
 
     if (!sessionsByDay[sessionDate]) {
       sessionsByDay[sessionDate] = {
@@ -85,16 +97,20 @@ export const processWorkSessions = (allWorkSessions) => {
         work_session_date: sessionDate,
         first_check_in: session.check_in,
         first_check_in_location: session.check_in_location,
+        first_check_in_address: session.check_in_address,
         last_check_out: session.check_out,
         last_check_out_location: session.check_out_location,
+        last_check_out_address: session.check_out_address,
         total_hours: session.total_hours || "00:00:00",
         sessions: [
           {
             id: session.id,
             check_in: session.check_in,
             check_in_location: session.check_in_location,
+            check_in_address: session.check_in_address,
             check_out: session.check_out,
             check_out_location: session.check_out_location,
+            check_out_address: session.check_out_address,
             total_hours: session.total_hours,
           },
         ],
@@ -107,14 +123,17 @@ export const processWorkSessions = (allWorkSessions) => {
         id: session.id,
         check_in: session.check_in,
         check_in_location: session.check_in_location,
+        check_in_address: session.check_in_address,
         check_out: session.check_out,
         check_out_location: session.check_out_location,
+        check_out_address: session.check_out_address,
         total_hours: session.total_hours,
       });
 
       if (session.check_in < employeeData.first_check_in) {
         employeeData.first_check_in = session.check_in;
         employeeData.first_check_in_location = session.check_in_location;
+        employeeData.first_check_in_address = session.check_in_address;
       }
 
       if (
@@ -124,6 +143,7 @@ export const processWorkSessions = (allWorkSessions) => {
       ) {
         employeeData.last_check_out = session.check_out;
         employeeData.last_check_out_location = session.check_out_location;
+        employeeData.last_check_out_address = session.check_out_address;
       }
 
       if (session.total_hours && employeeData.total_hours) {
