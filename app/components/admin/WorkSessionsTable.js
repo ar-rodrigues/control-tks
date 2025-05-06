@@ -23,7 +23,7 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import { SearchIcon, CloseIcon } from "@chakra-ui/icons";
+import { SearchIcon, CloseIcon, DownloadIcon } from "@chakra-ui/icons";
 import { useState, useEffect } from "react";
 import { useBreakpointValue } from "@chakra-ui/react";
 
@@ -94,6 +94,56 @@ const WorkSessionsTable = ({
     return matchesSearch;
   });
 
+  // CSV Download logic
+  const handleDownloadCSV = () => {
+    // CSV header
+    const header = [
+      "Empleado",
+      "Primer Check In",
+      "Último Check Out",
+      "Estado",
+      "Dirección Entrada",
+      "Dirección Salida",
+    ];
+    // CSV rows
+    const rows = filteredUsers.map((user) => {
+      const userSession = dateSessions.find(
+        (session) => session.profile_id === user.id
+      );
+      const status = getStatus(userSession);
+      return [
+        user.full_name,
+        formatTime(userSession?.first_check_in),
+        formatTime(userSession?.last_check_out),
+        status.status,
+        userSession?.first_check_in_address || "No disponible",
+        userSession?.last_check_out_address || "No disponible",
+      ];
+    });
+    // CSV string
+    const csvContent = [
+      header.join(","),
+      ...rows.map((row) =>
+        row
+          .map(
+            (field) => `"${String(field).replace(/"/g, '""')}"` // Escape quotes
+          )
+          .join(",")
+      ),
+    ].join("\r\n");
+    // Filename
+    const [yyyy, mm, dd] = selectedDate.split("-");
+    const filename = `asistencia-${dd}-${mm}-${yyyy}.csv`;
+    // Download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -110,6 +160,7 @@ const WorkSessionsTable = ({
             gap={2}
             direction={{ base: "column", sm: "row" }}
             w={{ base: "100%", md: "auto" }}
+            align="center"
           >
             <Input
               placeholder="Buscar empleado..."
@@ -131,6 +182,18 @@ const WorkSessionsTable = ({
               <option value="Tardanza">Tardanza</option>
               <option value="No registrado">No registrado</option>
             </Select>
+            <Tooltip label="Descargar CSV" aria-label="Descargar CSV">
+              <IconButton
+                icon={<DownloadIcon />}
+                colorScheme="blue"
+                variant="outline"
+                size="md"
+                onClick={handleDownloadCSV}
+                minW="44px"
+                px={2}
+                aria-label="Descargar CSV"
+              />
+            </Tooltip>
           </Flex>
         </Flex>
       </CardHeader>
@@ -361,7 +424,7 @@ const WorkSessionsTable = ({
                                       : userSession.last_check_out_address
                                   }
                                 >
-                                  Salida:{" "}
+                                  <Text fontWeight={"bold"}>Salida: </Text>
                                   {userSession.last_check_out_address ||
                                     "No disponible"}
                                 </Text>
