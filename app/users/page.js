@@ -122,7 +122,7 @@ const Users = () => {
         </CardHeader>
         <CardBody p={6}>
           <Box>
-            <AdminPanel />
+            <AdminPanel currentUserRole={role} />
           </Box>
         </CardBody>
       </Card>

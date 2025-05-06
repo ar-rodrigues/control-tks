@@ -32,6 +32,7 @@ import {
 } from "@chakra-ui/icons";
 import { useValidateUser } from "../../utils/validations/useValidateUser";
 import { useState } from "react";
+import { ROLE_ASSIGNMENT_MATRIX } from "../../utils/rolesConfig";
 
 export function UserTable({
   users,
@@ -46,6 +47,7 @@ export function UserTable({
   roles,
   isLoading,
   isActionLoading,
+  currentUserRole,
 }) {
   const { errors, validate } = useValidateUser(newUser);
   const toast = useToast();
@@ -178,6 +180,13 @@ export function UserTable({
     );
   };
 
+  // Filter roles using the assignment matrix
+  const allowedRoles =
+    ROLE_ASSIGNMENT_MATRIX[currentUserRole?.toUpperCase()] || [];
+  const filteredRoles = roles.filter((role) =>
+    allowedRoles.includes(role.role_name.toUpperCase())
+  );
+
   return (
     <Box overflowX="auto" w="full">
       <TableContainer
@@ -283,7 +292,7 @@ export function UserTable({
                           size={buttonSize}
                           borderRadius="md"
                         >
-                          {roles.map((role) => (
+                          {filteredRoles.map((role) => (
                             <option key={role.id} value={role.id}>
                               {role.role_name.toUpperCase()}
                             </option>

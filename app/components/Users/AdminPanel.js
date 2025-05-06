@@ -37,7 +37,7 @@ import { fetchRoles } from "../../api/roles/roles";
 import { FaFileImport, FaUserPlus, FaDownload } from "react-icons/fa";
 import { generateRandomPassword } from "../../utils/passwordGenerator";
 
-export function AdminPanel() {
+export function AdminPanel({ currentUserRole }) {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -287,6 +287,7 @@ export function AdminPanel() {
               setPasswordModalOpen(!isDeleteModalOpen);
             }}
             roles={roles}
+            currentUserRole={currentUserRole}
           />
 
           <AddUserModal
@@ -298,6 +299,7 @@ export function AdminPanel() {
             error={error}
             isLoading={isLoading}
             roles={roles}
+            currentUserRole={currentUserRole}
           />
 
           <DeleteConfirmationModal

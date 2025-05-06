@@ -17,6 +17,7 @@ import {
 import { BiRfid } from "react-icons/bi";
 import LocationsTable from "../components/LocationsDirectory/LocationsTable";
 import VinListsTable from "../components/VinLists/VinListsTable";
+import ApiKeysTable from "../components/ApiKeys/ApiKeysTable";
 
 export default function RfidConfigPage() {
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -62,8 +63,8 @@ export default function RfidConfigPage() {
           pl={isMobile ? 2 : 7}
           textAlign={isMobile ? "left" : "inherit"}
         >
-          Configuración de Directorio de Ubicaciones y Listas VIN para el
-          escáner RFID
+          Configuración de Directorio de Ubicaciones, Listas VIN y Claves API
+          para el escáner RFID
         </Text>
         <Box
           border={{ base: "none", md: "1px solid" }}
@@ -110,6 +111,21 @@ export default function RfidConfigPage() {
               >
                 Listas VIN
               </Tab>
+              <Tab
+                _selected={{
+                  color: tabActiveColor,
+                  borderBottom: "2px solid",
+                  borderColor: "black",
+                  fontWeight: "bold",
+                  bg: "transparent",
+                }}
+                color={tabInactiveColor}
+                fontWeight="medium"
+                fontSize={{ base: "sm", md: "md" }}
+                px={2}
+              >
+                Claves API
+              </Tab>
             </TabList>
             <TabPanels>
               <TabPanel px={{ base: 2, md: 0 }}>
@@ -117,6 +133,9 @@ export default function RfidConfigPage() {
               </TabPanel>
               <TabPanel px={{ base: 2, md: 0 }}>
                 <VinListsTable />
+              </TabPanel>
+              <TabPanel px={{ base: 2, md: 0 }}>
+                <ApiKeysTable />
               </TabPanel>
             </TabPanels>
           </Tabs>
