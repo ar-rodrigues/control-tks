@@ -1,6 +1,7 @@
 import { FiHome, FiUsers, FiLogOut } from "react-icons/fi";
 import { CiUnlock } from "react-icons/ci";
 import { FaChartBar } from "react-icons/fa";
+import { BiRfid } from "react-icons/bi";
 
 export const menuLinks = [
   {
@@ -26,6 +27,12 @@ export const menuLinks = [
     text: "Reportes",
     icon: FaChartBar,
     roles: ["admin", "rh", "direccion"],
+  },
+  {
+    href: "/rfid-config",
+    text: "RFID",
+    icon: BiRfid,
+    roles: ["admin"],
   },
 ];
 

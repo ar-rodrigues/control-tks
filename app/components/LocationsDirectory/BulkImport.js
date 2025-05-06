@@ -64,26 +64,35 @@ export default function BulkImport({ onImportComplete }) {
     document.body.removeChild(link);
   };
 
+  // Helper to normalize object keys to lowercase
+  const normalizeKeys = (obj) => {
+    const newObj = {};
+    Object.keys(obj).forEach((key) => {
+      newObj[key.toLowerCase()] = obj[key];
+    });
+    return newObj;
+  };
+
+  const requiredFields = [
+    "cliente",
+    "convenio",
+    "agencia",
+    "direccion",
+    "ciudad",
+    "estado",
+    "cp",
+  ];
+
   const validateData = (locations) => {
     const errors = [];
-    const requiredFields = [
-      "cliente",
-      "convenio",
-      "agencia",
-      "direccion",
-      "ciudad",
-      "estado",
-      "cp",
-    ];
-
     locations.forEach((location, index) => {
       const rowErrors = [];
+      const normalized = normalizeKeys(location);
       requiredFields.forEach((field) => {
-        if (!location[field]) {
+        if (!normalized[field]) {
           rowErrors.push(`Falta el campo ${field}`);
         }
       });
-
       if (rowErrors.length > 0) {
         errors.push({
           row: index + 2, // +2 because of 0-based index and header row
@@ -91,37 +100,41 @@ export default function BulkImport({ onImportComplete }) {
         });
       }
     });
-
     return errors;
   };
 
   const processAndPreviewData = (data, fromExcel = false) => {
     let locations = [];
     if (fromExcel) {
-      locations = data.map((row) => ({
-        cliente: row.cliente || row.Cliente,
-        convenio: row.convenio || row.Convenio,
-        agencia: row.agencia || row.Agencia,
-        direccion: row.direccion || row.Direccion,
-        ciudad: row.ciudad || row.Ciudad,
-        estado: row.estado || row.Estado,
-        cp: row.cp || row.CP,
-      }));
+      locations = data.map((row) => {
+        const normalized = normalizeKeys(row);
+        return {
+          cliente: normalized["cliente"] || "",
+          convenio: normalized["convenio"] || "",
+          agencia: normalized["agencia"] || "",
+          direccion: normalized["direccion"] || "",
+          ciudad: normalized["ciudad"] || "",
+          estado: normalized["estado"] || "",
+          cp: normalized["cp"] || "",
+        };
+      });
     } else {
-      // CSV text
       const workbook = XLSX.read(data, { type: "string" });
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      locations = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      locations = locations.map((row) => ({
-        cliente: row.cliente || row.Cliente,
-        convenio: row.convenio || row.Convenio,
-        agencia: row.agencia || row.Agencia,
-        direccion: row.direccion || row.Direccion,
-        ciudad: row.ciudad || row.Ciudad,
-        estado: row.estado || row.Estado,
-        cp: row.cp || row.CP,
-      }));
+      let raw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      locations = raw.map((row) => {
+        const normalized = normalizeKeys(row);
+        return {
+          cliente: normalized["cliente"] || "",
+          convenio: normalized["convenio"] || "",
+          agencia: normalized["agencia"] || "",
+          direccion: normalized["direccion"] || "",
+          ciudad: normalized["ciudad"] || "",
+          estado: normalized["estado"] || "",
+          cp: normalized["cp"] || "",
+        };
+      });
     }
     const errors = validateData(locations);
     setValidationErrors(errors);
@@ -227,6 +240,10 @@ export default function BulkImport({ onImportComplete }) {
 
       onImportComplete();
       onClose();
+      // Clear data after successful import
+      setCsvData("");
+      setPreviewData(null);
+      setValidationErrors([]);
     } catch (error) {
       toast({
         title: "Error",

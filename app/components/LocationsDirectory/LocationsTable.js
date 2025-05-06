@@ -29,6 +29,7 @@ import {
   Tr,
   Th,
   Td,
+  Stack,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { ChevronRightIcon, ArrowBackIcon } from "@chakra-ui/icons";
@@ -190,16 +191,22 @@ export default function LocationsTable() {
     <div className="p-4">
       <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:justify-between sm:items-center">
         <Heading size="lg">Directorio de Ubicaciones</Heading>
-        <div className="flex gap-2">
-          <BulkImport onImportComplete={fetchLocations} />
-          <Button
-            colorScheme="blue"
-            onClick={handleAdd}
+        <Box w={{ base: "full", sm: "auto" }}>
+          <Stack
+            direction={{ base: "column", sm: "row" }}
+            spacing={2}
             w={{ base: "full", sm: "auto" }}
           >
-            Agregar ubicación
-          </Button>
-        </div>
+            <BulkImport onImportComplete={fetchLocations} />
+            <Button
+              colorScheme="blue"
+              onClick={handleAdd}
+              w={{ base: "full", sm: "auto" }}
+            >
+              Agregar ubicación
+            </Button>
+          </Stack>
+        </Box>
       </div>
 
       <Breadcrumb
