@@ -26,6 +26,8 @@ export async function updateSession(request) {
   const allowedRoutes = [
     "/login",
     "/auth",
+    "/api/vin-lists",
+    "/api/locations-directory",
     "/manifest.json",
     "/sw.js",
     "/workbox-*.js",
