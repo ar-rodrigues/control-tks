@@ -36,10 +36,10 @@ export async function POST(request) {
 
   const { email, password, name, role } = await request.json();
 
-  console.log("email: ", email);
-  console.log("password: ", password);
-  console.log("name: ", name);
-  console.log("role: ", role);
+  // console.log("email: ", email);
+  // console.log("password: ", password);
+  // console.log("name: ", name);
+  // console.log("role: ", role);
 
   // Create user
   const { data, error } = await createUser(email, password);

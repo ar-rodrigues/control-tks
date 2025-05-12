@@ -3,7 +3,10 @@ import { createClient } from "./supabase/server";
 export async function validateApiKey(apiKey) {
   if (!apiKey) return false;
 
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY
+  );
 
   // Check if the API key exists and is active
   const { data, error } = await supabase
