@@ -52,6 +52,7 @@ export default function BulkImport({ onImportComplete }) {
       "ciudad",
       "estado",
       "cp",
+      "es_matriz",
     ];
     const csvContent = headers.join(",") + "\n";
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -71,6 +72,16 @@ export default function BulkImport({ onImportComplete }) {
       newObj[key.toLowerCase()] = obj[key];
     });
     return newObj;
+  };
+
+  // Helper to parse es_matriz values
+  const parseEsMatriz = (value) => {
+    if (typeof value === "boolean") return value;
+    if (typeof value !== "string") return false;
+    const val = value.trim().toLowerCase();
+    if (val === "true" || val === "si") return true;
+    if (val === "false" || val === "no") return false;
+    return false; // Default if unrecognized
   };
 
   const requiredFields = [
@@ -116,6 +127,7 @@ export default function BulkImport({ onImportComplete }) {
           ciudad: normalized["ciudad"] || "",
           estado: normalized["estado"] || "",
           cp: normalized["cp"] || "",
+          es_matriz: parseEsMatriz(normalized["es_matriz"]),
         };
       });
     } else {
@@ -133,6 +145,7 @@ export default function BulkImport({ onImportComplete }) {
           ciudad: normalized["ciudad"] || "",
           estado: normalized["estado"] || "",
           cp: normalized["cp"] || "",
+          es_matriz: parseEsMatriz(normalized["es_matriz"]),
         };
       });
     }
@@ -372,6 +385,7 @@ export default function BulkImport({ onImportComplete }) {
                         <Th>Ciudad</Th>
                         <Th>Estado</Th>
                         <Th>CP</Th>
+                        <Th>Es Matriz</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -384,6 +398,7 @@ export default function BulkImport({ onImportComplete }) {
                           <Td>{row.ciudad}</Td>
                           <Td>{row.estado}</Td>
                           <Td>{row.cp}</Td>
+                          <Td>{row.es_matriz ? "Sí" : "No"}</Td>
                         </Tr>
                       ))}
                     </Tbody>
