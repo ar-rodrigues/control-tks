@@ -43,7 +43,7 @@ export const menuLinks = [
     href: "/planning",
     text: "Planificación",
     icon: FaCalendarAlt,
-    roles: ["admin", "direccion"],
+    roles: ["admin", "direccion", "coordinador"],
   },
   {
     href: "/auditors",
