@@ -8,6 +8,7 @@ export const ROLE_ASSIGNMENT_MATRIX = {
     "DIRECCION",
     "OFFICE",
     "COORDINADOR",
+    "AUDITOR-DICA",
   ],
   RH: ["AUDITOR", "OFFICE", "COORDINADOR"],
   "BACK-OFFICE": [],
@@ -15,4 +16,5 @@ export const ROLE_ASSIGNMENT_MATRIX = {
   DIRECCION: [],
   OFFICE: [],
   COORDINADOR: [],
+  "AUDITOR-DICA": [],
 };

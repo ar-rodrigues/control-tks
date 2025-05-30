@@ -13,7 +13,7 @@ export async function GET() {
     .select(
       "id, full_name, email, profile_picture, zone, roles!profiles_roles_fkey ( role_name ), home_address, home_address_coordinates"
     )
-    .eq("roles.role_name", "auditor")
+    .in("roles.role_name", ["auditor", "coordinador", "back-office"])
     .not("roles", "is", null);
 
   if (error) {

@@ -42,6 +42,36 @@ import {
   Divider,
   IconButton,
   SimpleGrid,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  Checkbox,
+  CheckboxGroup,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
+  Progress,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from "@chakra-ui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -55,7 +85,17 @@ import {
   DownloadIcon,
   CheckIcon,
   CloseIcon,
+  StarIcon,
 } from "@chakra-ui/icons";
+
+// Import auto-planning modules
+import {
+  generateAutomaticPlanning,
+  exportAndDownloadResults,
+  getAvailableConstraints,
+  getDefaultConfiguration,
+  getPerformanceMetrics,
+} from "../utils/autoPlanningTester/index.js";
 
 const ZONES = ["Centro", "Sur", "Norte", "Occidente"];
 
@@ -1028,6 +1068,7 @@ const ActionButtons = React.memo(
     onExpandAll,
     onCollapseAll,
     onDownloadCSV,
+    onAutoPlanning,
     onSaveAll,
     isLoadingPlanning,
   }) => {
@@ -1075,6 +1116,16 @@ const ActionButtons = React.memo(
             Descargar
           </Button>
           <Button
+            leftIcon={<StarIcon />}
+            variant="outline"
+            colorScheme="purple"
+            size="xs"
+            onClick={onAutoPlanning}
+            minW="100px"
+          >
+            Auto-Planificar
+          </Button>
+          <Button
             leftIcon={<CheckIcon />}
             variant="solid"
             colorScheme="blue"
@@ -1090,6 +1141,483 @@ const ActionButtons = React.memo(
     );
   }
 );
+
+// Auto-Planning Configuration Modal Component
+const AutoPlanningModal = ({
+  isOpen,
+  onClose,
+  selectedMonth,
+  selectedYear,
+  locations,
+  auditors,
+  existingPlannings,
+  onGenerate,
+}) => {
+  const [configuration, setConfiguration] = useState(getDefaultConfiguration());
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [currentResults, setCurrentResults] = useState(null);
+  const toast = useToast();
+
+  const availableConstraints = getAvailableConstraints();
+  const activeLocations = locations.filter((loc) => loc.is_active !== false);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setConfiguration(getDefaultConfiguration());
+      setIsGenerating(false);
+      setGenerationProgress(0);
+      setCurrentResults(null);
+    }
+  }, [isOpen]);
+
+  const handleConstraintToggle = (constraintName, enabled) => {
+    setConfiguration((prev) => ({
+      ...prev,
+      enabledConstraints: enabled
+        ? [...prev.enabledConstraints, constraintName]
+        : prev.enabledConstraints.filter((name) => name !== constraintName),
+    }));
+  };
+
+  const handleParameterChange = (constraintName, paramName, value) => {
+    setConfiguration((prev) => ({
+      ...prev,
+      constraintParameters: {
+        ...prev.constraintParameters,
+        [constraintName]: {
+          ...prev.constraintParameters[constraintName],
+          [paramName]: value,
+        },
+      },
+    }));
+  };
+
+  const handleWeightChange = (weightName, value) => {
+    setConfiguration((prev) => ({
+      ...prev,
+      algorithmWeights: {
+        ...prev.algorithmWeights,
+        [weightName]: value,
+      },
+    }));
+  };
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setGenerationProgress(10);
+
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setGenerationProgress((prev) => Math.min(prev + 15, 90));
+      }, 300);
+
+      const results = await generateAutomaticPlanning({
+        locations: activeLocations,
+        auditors,
+        targetMonth: selectedMonth,
+        targetYear: selectedYear,
+        existingPlannings,
+        configuration,
+      });
+
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+      setCurrentResults(results);
+
+      toast({
+        title: "Planificación generada",
+        description: `Se generaron ${results.assignments.length} asignaciones automáticamente`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      setGenerationProgress(0);
+      console.error("Error generando planificación:", error);
+      toast({
+        title: "Error en planificación",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!currentResults) return;
+
+    try {
+      await exportAndDownloadResults(
+        currentResults,
+        auditors,
+        locations,
+        selectedMonth,
+        selectedYear
+      );
+
+      toast({
+        title: "Descarga exitosa",
+        description: "El archivo CSV ha sido descargado",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Error en descarga",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const renderConstraintConfiguration = () => {
+    return (
+      <Accordion allowMultiple>
+        <AccordionItem>
+          <AccordionButton>
+            <Box flex="1" textAlign="left">
+              <Text fontWeight="semibold">Restricciones</Text>
+            </Box>
+            <AccordionIcon />
+          </AccordionButton>
+          <AccordionPanel pb={4}>
+            <VStack align="stretch" spacing={4}>
+              {Object.entries(availableConstraints).map(
+                ([constraintName, constraint]) => {
+                  const isEnabled =
+                    configuration.enabledConstraints.includes(constraintName);
+
+                  return (
+                    <Box
+                      key={constraintName}
+                      p={3}
+                      border="1px"
+                      borderColor="gray.200"
+                      borderRadius="md"
+                    >
+                      <VStack align="stretch" spacing={2}>
+                        <Checkbox
+                          isChecked={isEnabled}
+                          onChange={(e) =>
+                            handleConstraintToggle(
+                              constraintName,
+                              e.target.checked
+                            )
+                          }
+                          fontWeight="medium"
+                        >
+                          {constraint.name}
+                        </Checkbox>
+                        <Text fontSize="sm" color="gray.600">
+                          {constraint.description}
+                        </Text>
+
+                        {isEnabled && constraint.configurable && (
+                          <VStack align="stretch" spacing={2} mt={2} pl={6}>
+                            {Object.entries(constraint.parameters).map(
+                              ([paramName, param]) => (
+                                <FormControl key={paramName} size="sm">
+                                  <FormLabel fontSize="xs">
+                                    {param.label}
+                                  </FormLabel>
+                                  {param.type === "number" && (
+                                    <NumberInput
+                                      size="sm"
+                                      value={
+                                        configuration.constraintParameters[
+                                          constraintName
+                                        ]?.[paramName] || param.default
+                                      }
+                                      min={param.min}
+                                      max={param.max}
+                                      onChange={(valueString, valueNumber) =>
+                                        handleParameterChange(
+                                          constraintName,
+                                          paramName,
+                                          valueNumber
+                                        )
+                                      }
+                                    >
+                                      <NumberInputField />
+                                      <NumberInputStepper>
+                                        <NumberIncrementStepper />
+                                        <NumberDecrementStepper />
+                                      </NumberInputStepper>
+                                    </NumberInput>
+                                  )}
+                                  {param.type === "slider" && (
+                                    <Slider
+                                      value={
+                                        configuration.constraintParameters[
+                                          constraintName
+                                        ]?.[paramName] || param.default
+                                      }
+                                      min={param.min}
+                                      max={param.max}
+                                      step={param.step}
+                                      onChange={(value) =>
+                                        handleParameterChange(
+                                          constraintName,
+                                          paramName,
+                                          value
+                                        )
+                                      }
+                                    >
+                                      <SliderTrack>
+                                        <SliderFilledTrack />
+                                      </SliderTrack>
+                                      <SliderThumb />
+                                    </Slider>
+                                  )}
+                                  {param.type === "boolean" && (
+                                    <Checkbox
+                                      isChecked={
+                                        configuration.constraintParameters[
+                                          constraintName
+                                        ]?.[paramName] !== false
+                                      }
+                                      onChange={(e) =>
+                                        handleParameterChange(
+                                          constraintName,
+                                          paramName,
+                                          e.target.checked
+                                        )
+                                      }
+                                    >
+                                      Habilitado
+                                    </Checkbox>
+                                  )}
+                                </FormControl>
+                              )
+                            )}
+                          </VStack>
+                        )}
+                      </VStack>
+                    </Box>
+                  );
+                }
+              )}
+            </VStack>
+          </AccordionPanel>
+        </AccordionItem>
+
+        <AccordionItem>
+          <AccordionButton>
+            <Box flex="1" textAlign="left">
+              <Text fontWeight="semibold">Pesos del Algoritmo</Text>
+            </Box>
+            <AccordionIcon />
+          </AccordionButton>
+          <AccordionPanel pb={4}>
+            <VStack align="stretch" spacing={4}>
+              {Object.entries({
+                distance: "Distancia",
+                zoneMatch: "Coincidencia de Zona",
+                workload: "Balance de Carga",
+                constraints: "Restricciones",
+              }).map(([weightName, label]) => (
+                <FormControl key={weightName}>
+                  <FormLabel fontSize="sm">
+                    {label}:{" "}
+                    {(configuration.algorithmWeights[weightName] * 100).toFixed(
+                      0
+                    )}
+                    %
+                  </FormLabel>
+                  <Slider
+                    value={configuration.algorithmWeights[weightName]}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    onChange={(value) => handleWeightChange(weightName, value)}
+                  >
+                    <SliderTrack>
+                      <SliderFilledTrack />
+                    </SliderTrack>
+                    <SliderThumb />
+                  </Slider>
+                </FormControl>
+              ))}
+            </VStack>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
+    );
+  };
+
+  const renderResults = () => {
+    if (!currentResults) return null;
+
+    const performance = getPerformanceMetrics(currentResults);
+
+    return (
+      <VStack align="stretch" spacing={4}>
+        <Alert status="success">
+          <AlertIcon />
+          <Box>
+            <AlertTitle>¡Planificación Completada!</AlertTitle>
+            <AlertDescription>
+              Se generaron {currentResults.summary.totalAssignments}{" "}
+              asignaciones de {currentResults.summary.totalLocations}{" "}
+              ubicaciones disponibles.
+            </AlertDescription>
+          </Box>
+        </Alert>
+
+        <SimpleGrid columns={2} spacing={4}>
+          <Box p={3} bg="blue.50" borderRadius="md">
+            <Text fontSize="sm" fontWeight="semibold" color="blue.700">
+              Tasa de Asignación
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold" color="blue.800">
+              {currentResults.summary.assignmentRate}%
+            </Text>
+          </Box>
+          <Box p={3} bg="green.50" borderRadius="md">
+            <Text fontSize="sm" fontWeight="semibold" color="green.700">
+              Distancia Promedio
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold" color="green.800">
+              {currentResults.summary.averageDistance} km
+            </Text>
+          </Box>
+          <Box p={3} bg="purple.50" borderRadius="md">
+            <Text fontSize="sm" fontWeight="semibold" color="purple.700">
+              Confianza Promedio
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold" color="purple.800">
+              {currentResults.summary.averageConfidence}%
+            </Text>
+          </Box>
+          <Box p={3} bg="orange.50" borderRadius="md">
+            <Text fontSize="sm" fontWeight="semibold" color="orange.700">
+              Con Fechas Asignadas
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold" color="orange.800">
+              {currentResults.summary.dateAssignmentRate}%
+            </Text>
+          </Box>
+        </SimpleGrid>
+
+        {currentResults.warnings.length > 0 && (
+          <Alert status="warning">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>Advertencias</AlertTitle>
+              <AlertDescription>
+                <VStack align="start" spacing={1}>
+                  {currentResults.warnings.map((warning, index) => (
+                    <Text key={index} fontSize="sm">
+                      • {warning}
+                    </Text>
+                  ))}
+                </VStack>
+              </AlertDescription>
+            </Box>
+          </Alert>
+        )}
+      </VStack>
+    );
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside">
+      <ModalOverlay />
+      <ModalContent maxH="90vh">
+        <ModalHeader>
+          <VStack align="start" spacing={1}>
+            <Text>Planificación Automática</Text>
+            <Text fontSize="sm" color="gray.600">
+              {MONTHS[selectedMonth]} {selectedYear} - {activeLocations.length}{" "}
+              ubicaciones activas
+            </Text>
+          </VStack>
+        </ModalHeader>
+        <ModalCloseButton />
+
+        <ModalBody>
+          <VStack align="stretch" spacing={6}>
+            {!currentResults && (
+              <>
+                <Box>
+                  <Text fontSize="md" fontWeight="semibold" mb={3}>
+                    Información de Entrada
+                  </Text>
+                  <SimpleGrid columns={2} spacing={4}>
+                    <Box>
+                      <Text fontSize="sm" color="gray.600">
+                        Ubicaciones Activas:
+                      </Text>
+                      <Text fontWeight="semibold">
+                        {activeLocations.length}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="sm" color="gray.600">
+                        Auditores Disponibles:
+                      </Text>
+                      <Text fontWeight="semibold">{auditors.length}</Text>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+
+                <Divider />
+
+                {renderConstraintConfiguration()}
+              </>
+            )}
+
+            {isGenerating && (
+              <Box>
+                <Text mb={2}>Generando planificación...</Text>
+                <Progress value={generationProgress} colorScheme="blue" />
+              </Box>
+            )}
+
+            {renderResults()}
+          </VStack>
+        </ModalBody>
+
+        <ModalFooter>
+          <HStack spacing={3}>
+            {currentResults && (
+              <Button
+                colorScheme="green"
+                onClick={handleDownload}
+                leftIcon={<DownloadIcon />}
+              >
+                Descargar CSV
+              </Button>
+            )}
+            {!currentResults && !isGenerating && (
+              <Button
+                colorScheme="blue"
+                onClick={handleGenerate}
+                isDisabled={
+                  activeLocations.length === 0 || auditors.length === 0
+                }
+              >
+                Generar Planificación
+              </Button>
+            )}
+            <Button variant="outline" onClick={onClose}>
+              {currentResults ? "Cerrar" : "Cancelar"}
+            </Button>
+          </HStack>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+};
 
 export default function Planning() {
   const {
@@ -1133,6 +1661,11 @@ export default function Planning() {
     isOpen: isDrawerOpen,
     onOpen: onDrawerOpen,
     onClose: onDrawerClose,
+  } = useDisclosure();
+  const {
+    isOpen: isAutoModalOpen,
+    onOpen: onAutoModalOpen,
+    onClose: onAutoModalClose,
   } = useDisclosure();
   const toast = useToast();
 
@@ -1719,6 +2252,11 @@ export default function Planning() {
     [onDrawerOpen]
   );
 
+  // Handler for auto-planning
+  const handleAutoPlanning = useCallback(() => {
+    onAutoModalOpen();
+  }, [onAutoModalOpen]);
+
   // Location Details Drawer Component
   const LocationDetailsDrawer = () => {
     if (!selectedLocation) return null;
@@ -2046,6 +2584,7 @@ export default function Planning() {
               selectedMonth
             );
           }}
+          onAutoPlanning={handleAutoPlanning}
           onSaveAll={handleSaveAll}
           isLoadingPlanning={isLoadingPlanning}
         />
@@ -2072,6 +2611,17 @@ export default function Planning() {
       </Flex>
 
       <LocationDetailsDrawer />
+
+      <AutoPlanningModal
+        isOpen={isAutoModalOpen}
+        onClose={onAutoModalClose}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        locations={locations}
+        auditors={auditors}
+        existingPlannings={savedPlanningData}
+        onGenerate={() => {}}
+      />
     </Box>
   );
 }
