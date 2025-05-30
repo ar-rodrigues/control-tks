@@ -60,22 +60,7 @@ export default function BulkImport({ onImportComplete }) {
       "location_coordinates",
     ];
 
-    // Add example row
-    const exampleRow = [
-      "Banorte",
-      "18641716",
-      "AUTOMOVILES TECNOLÓGICO, S.A. DE C.V.",
-      "AV. LAZARO CARDENAS 1815-C",
-      "Monterrey",
-      "Nuevo León",
-      "64754",
-      "Norte",
-      "false",
-      "true",
-      '{"lat": 25.6714, "lon": -100.309}',
-    ];
-
-    const csvContent = headers.join(",") + "\n" + exampleRow.join(",") + "\n";
+    const csvContent = headers.join(",") + "\n";
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
