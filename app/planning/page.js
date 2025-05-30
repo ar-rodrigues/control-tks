@@ -47,7 +47,15 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import React from "react";
 import { getUserProfile } from "../utils/users/usersOperations";
-import { DeleteIcon } from "@chakra-ui/icons";
+import {
+  DeleteIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  DownloadIcon,
+  CheckIcon,
+  CloseIcon,
+} from "@chakra-ui/icons";
 
 const ZONES = ["Centro", "Sur", "Norte", "Occidente"];
 
@@ -88,7 +96,7 @@ const FilterControls = React.memo(
     }, [locations]);
 
     return (
-      <Box p={4} bg="gray.50" borderRadius="md" mb={4}>
+      <Box p={4} bg="gray.50" borderRadius="md" mb={0}>
         <Text fontSize="md" fontWeight="semibold" mb={3}>
           Filtros
         </Text>
@@ -304,8 +312,24 @@ const PlanningRow = React.memo(
       return location.is_active !== false; // Default to true if is_active not set
     }, [location, savedPlanningData, selectedMonth]);
 
-    const rowBg = isActive ? "white" : "gray.100";
-    const rowHoverBg = isActive ? "gray.50" : "gray.200";
+    // Enhanced styling for matriz locations
+    const isMatriz = location.es_matriz;
+    const rowBg = isMatriz
+      ? isActive
+        ? "blue.50"
+        : "blue.100"
+      : isActive
+      ? "white"
+      : "gray.100";
+    const rowHoverBg = isMatriz
+      ? isActive
+        ? "blue.100"
+        : "blue.150"
+      : isActive
+      ? "gray.50"
+      : "gray.200";
+    const borderLeft = isMatriz ? "4px solid" : "none";
+    const borderColor = isMatriz ? "blue.500" : "transparent";
 
     return (
       <Tr
@@ -314,12 +338,36 @@ const PlanningRow = React.memo(
         cursor="pointer"
         onClick={() => onRowClick(location)}
         opacity={isActive ? 1 : 0.7}
+        borderLeft={borderLeft}
+        borderColor={borderColor}
+        fontWeight={isMatriz ? "semibold" : "normal"}
       >
         <Td py={1} px={2} maxW="120px" isTruncated fontSize="xs">
-          {location.cliente}
+          <Text color={isMatriz ? "blue.700" : "inherit"}>
+            {location.cliente}
+          </Text>
         </Td>
-        <Td py={1} px={2} maxW="120px" isTruncated fontSize="xs">
-          {location.convenio}
+        <Td py={2} px={2} maxW="150px" fontSize="xs" whiteSpace="normal">
+          <Box>
+            <Text
+              fontWeight={isMatriz ? "bold" : "medium"}
+              color={isMatriz ? "blue.700" : "inherit"}
+              lineHeight="1.2"
+            >
+              {location.convenio}
+            </Text>
+            {location.direccion && (
+              <Text
+                fontSize="2xs"
+                color="gray.600"
+                mt={1}
+                lineHeight="1.1"
+                noOfLines={2}
+              >
+                {location.direccion}
+              </Text>
+            )}
+          </Box>
         </Td>
         <Td py={1} px={2} w="100px" onClick={(e) => e.stopPropagation()}>
           <ZoneSelect
@@ -362,6 +410,7 @@ const PlanningRow = React.memo(
             isChecked={location.es_matriz}
             onChange={(e) => onMatrizToggle(location.id, e.target.checked)}
             size="sm"
+            colorScheme={isMatriz ? "blue" : "gray"}
           />
         </Td>
         <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
@@ -390,19 +439,435 @@ const PlanningRow = React.memo(
 );
 
 const MONTHS = [
-  "Jan",
+  "Ene",
   "Feb",
   "Mar",
-  "Apr",
+  "Abr",
   "May",
   "Jun",
   "Jul",
-  "Aug",
+  "Ago",
   "Sep",
   "Oct",
   "Nov",
   "Dec",
 ];
+
+// Helper function to group locations by convenio
+const groupLocationsByConvenio = (locations) => {
+  const groups = {};
+
+  locations.forEach((location) => {
+    const convenio = location.convenio;
+    if (!groups[convenio]) {
+      groups[convenio] = {
+        matriz: null,
+        subsidiaries: [],
+      };
+    }
+
+    if (location.es_matriz) {
+      groups[convenio].matriz = location;
+    } else {
+      groups[convenio].subsidiaries.push(location);
+    }
+  });
+
+  // Handle edge case: if no matriz exists, make the first location the matriz
+  Object.values(groups).forEach((group) => {
+    if (!group.matriz && group.subsidiaries.length > 0) {
+      group.matriz = group.subsidiaries.shift();
+    }
+  });
+
+  return groups;
+};
+
+// Memoize the SubsidiaryRow component
+const SubsidiaryRow = React.memo(
+  ({
+    location,
+    selectedAuditor,
+    selectedDate,
+    auditors,
+    onDateChange,
+    onAuditorChange,
+    onZoneChange,
+    onMatrizToggle,
+    onActiveToggle,
+    onRowClick,
+    dateRange,
+    handleDeletePlanning,
+    localPlanningData,
+    savedPlanningData,
+    selectedMonth,
+  }) => {
+    // Determine if location is active
+    const isActive = useMemo(() => {
+      const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
+      if (savedPlanning?.auditor_id) {
+        return savedPlanning.was_active !== false;
+      }
+      return location.is_active !== false;
+    }, [location, savedPlanningData, selectedMonth]);
+
+    return (
+      <Tr
+        bg={isActive ? "gray.25" : "gray.150"}
+        _hover={{ bg: isActive ? "gray.75" : "gray.200" }}
+        cursor="pointer"
+        onClick={() => onRowClick(location)}
+        opacity={isActive ? 1 : 0.7}
+        borderLeft="2px solid"
+        borderColor="gray.300"
+      >
+        <Td py={1} px={2} pl={8} maxW="120px" isTruncated fontSize="xs">
+          <Text color="gray.600" fontSize="2xs">
+            └─
+          </Text>
+        </Td>
+        <Td py={2} px={2} maxW="150px" fontSize="xs" whiteSpace="normal">
+          <Box>
+            <Text
+              fontSize="2xs"
+              color="gray.600"
+              mt={0}
+              lineHeight="1.1"
+              noOfLines={2}
+            >
+              {location.direccion}
+            </Text>
+          </Box>
+        </Td>
+        <Td py={1} px={2} w="100px" onClick={(e) => e.stopPropagation()}>
+          <ZoneSelect
+            value={location.zona}
+            onChange={(e) => onZoneChange(location.id, e.target.value)}
+            id={`zone-${location.id}`}
+          />
+        </Td>
+        <Td py={1} px={2} w="130px" onClick={(e) => e.stopPropagation()}>
+          <AuditorSelect
+            value={selectedAuditor}
+            onChange={(e) => onAuditorChange(location.id, e.target.value)}
+            id={`auditor-${location.id}`}
+            auditors={auditors}
+            isDisabled={!isActive}
+          />
+        </Td>
+        <Td py={1} px={2} w="100px" onClick={(e) => e.stopPropagation()}>
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date) => onDateChange(location.id, date)}
+            dateFormat="dd/MM/yyyy"
+            className="chakra-input css-1kp110w"
+            placeholderText="Fecha"
+            minDate={dateRange.startDate}
+            maxDate={dateRange.endDate}
+            disabled={!isActive}
+            style={{
+              opacity: isActive ? 1 : 0.6,
+              cursor: isActive ? "pointer" : "not-allowed",
+              fontSize: "12px",
+              padding: "4px 8px",
+              width: "95px",
+            }}
+          />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          <Switch
+            id={`matriz-${location.id}`}
+            isChecked={location.es_matriz}
+            onChange={(e) => onMatrizToggle(location.id, e.target.checked)}
+            size="sm"
+            colorScheme="gray"
+          />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          <Switch
+            id={`active-${location.id}`}
+            isChecked={isActive}
+            onChange={(e) => onActiveToggle(location.id, e.target.checked)}
+            size="sm"
+            colorScheme="green"
+          />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          {localPlanningData[location.id]?.[selectedMonth]?.auditor_id && (
+            <IconButton
+              aria-label="Eliminar planificación"
+              icon={<DeleteIcon />}
+              size="xs"
+              colorScheme="red"
+              onClick={() => handleDeletePlanning(location.id)}
+            />
+          )}
+        </Td>
+      </Tr>
+    );
+  }
+);
+
+// Enhanced MatrizRow component with expand/collapse functionality
+const MatrizRow = React.memo(
+  ({
+    location,
+    selectedAuditor,
+    selectedDate,
+    auditors,
+    onDateChange,
+    onAuditorChange,
+    onZoneChange,
+    onMatrizToggle,
+    onActiveToggle,
+    onRowClick,
+    dateRange,
+    handleDeletePlanning,
+    localPlanningData,
+    savedPlanningData,
+    selectedMonth,
+    hasSubsidiaries,
+    isExpanded,
+    onToggleExpand,
+  }) => {
+    // Determine if location is active
+    const isActive = useMemo(() => {
+      const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
+      if (savedPlanning?.auditor_id) {
+        return savedPlanning.was_active !== false;
+      }
+      return location.is_active !== false;
+    }, [location, savedPlanningData, selectedMonth]);
+
+    // Enhanced styling for matriz locations
+    const isMatriz = location.es_matriz;
+    const rowBg = isMatriz
+      ? isActive
+        ? "blue.50"
+        : "blue.100"
+      : isActive
+      ? "white"
+      : "gray.100";
+    const rowHoverBg = isMatriz
+      ? isActive
+        ? "blue.100"
+        : "blue.150"
+      : isActive
+      ? "gray.50"
+      : "gray.200";
+    const borderLeft = isMatriz ? "4px solid" : "none";
+    const borderColor = isMatriz ? "blue.500" : "transparent";
+
+    return (
+      <Tr
+        bg={rowBg}
+        _hover={{ bg: rowHoverBg }}
+        cursor="pointer"
+        onClick={() => onRowClick(location)}
+        opacity={isActive ? 1 : 0.7}
+        borderLeft={borderLeft}
+        borderColor={borderColor}
+        fontWeight={isMatriz ? "semibold" : "normal"}
+      >
+        <Td py={1} px={2} maxW="120px" isTruncated fontSize="xs">
+          <HStack spacing={1}>
+            {hasSubsidiaries && (
+              <IconButton
+                aria-label={isExpanded ? "Collapse" : "Expand"}
+                icon={isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+                size="md"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleExpand();
+                }}
+                minW="auto"
+                h="auto"
+                p={0}
+                fontSize="xs"
+                color="gray.500"
+              />
+            )}
+            <Text color={isMatriz ? "blue.700" : "inherit"} isTruncated>
+              {location.cliente}
+            </Text>
+          </HStack>
+        </Td>
+        <Td py={2} px={2} maxW="150px" fontSize="xs" whiteSpace="normal">
+          <Box>
+            <Text
+              fontWeight={isMatriz ? "bold" : "medium"}
+              color={isMatriz ? "blue.700" : "inherit"}
+              lineHeight="1.2"
+            >
+              {location.convenio}
+            </Text>
+            {location.direccion && (
+              <Text
+                fontSize="2xs"
+                color="gray.600"
+                mt={1}
+                lineHeight="1.1"
+                noOfLines={2}
+              >
+                {location.direccion}
+              </Text>
+            )}
+          </Box>
+        </Td>
+        <Td py={1} px={2} w="100px" onClick={(e) => e.stopPropagation()}>
+          <ZoneSelect
+            value={location.zona}
+            onChange={(e) => onZoneChange(location.id, e.target.value)}
+            id={`zone-${location.id}`}
+          />
+        </Td>
+        <Td py={1} px={2} w="130px" onClick={(e) => e.stopPropagation()}>
+          <AuditorSelect
+            value={selectedAuditor}
+            onChange={(e) => onAuditorChange(location.id, e.target.value)}
+            id={`auditor-${location.id}`}
+            auditors={auditors}
+            isDisabled={!isActive}
+          />
+        </Td>
+        <Td py={1} px={2} w="100px" onClick={(e) => e.stopPropagation()}>
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date) => onDateChange(location.id, date)}
+            dateFormat="dd/MM/yyyy"
+            className="chakra-input css-1kp110w"
+            placeholderText="Fecha"
+            minDate={dateRange.startDate}
+            maxDate={dateRange.endDate}
+            disabled={!isActive}
+            style={{
+              opacity: isActive ? 1 : 0.6,
+              cursor: isActive ? "pointer" : "not-allowed",
+              fontSize: "12px",
+              padding: "4px 8px",
+              width: "95px",
+            }}
+          />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          <Switch
+            id={`matriz-${location.id}`}
+            isChecked={location.es_matriz}
+            onChange={(e) => onMatrizToggle(location.id, e.target.checked)}
+            size="sm"
+            colorScheme={isMatriz ? "blue" : "gray"}
+          />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          <Switch
+            id={`active-${location.id}`}
+            isChecked={isActive}
+            onChange={(e) => onActiveToggle(location.id, e.target.checked)}
+            size="sm"
+            colorScheme="green"
+          />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          {localPlanningData[location.id]?.[selectedMonth]?.auditor_id && (
+            <IconButton
+              aria-label="Eliminar planificación"
+              icon={<DeleteIcon />}
+              size="xs"
+              colorScheme="red"
+              onClick={() => handleDeletePlanning(location.id)}
+            />
+          )}
+        </Td>
+      </Tr>
+    );
+  }
+);
+
+// ConvenioGroup component to manage grouped rows
+const ConvenioGroup = React.memo(
+  ({
+    convenio,
+    group,
+    auditors,
+    localPlanningData,
+    savedPlanningData,
+    selectedMonth,
+    selectedYear,
+    onDateChange,
+    onAuditorChange,
+    onZoneChange,
+    onMatrizToggle,
+    onActiveToggle,
+    onRowClick,
+    handleDeletePlanning,
+    dateRange,
+    expandedGroups,
+    onToggleGroup,
+  }) => {
+    const isExpanded = expandedGroups[convenio] || false;
+    const hasSubsidiaries = group.subsidiaries.length > 0;
+
+    return (
+      <>
+        {/* Matriz Row */}
+        {group.matriz && (
+          <MatrizRow
+            location={group.matriz}
+            selectedAuditor={
+              localPlanningData[group.matriz.id]?.[selectedMonth]?.auditor_id
+            }
+            selectedDate={
+              localPlanningData[group.matriz.id]?.[selectedMonth]?.audit_date
+            }
+            auditors={auditors}
+            onDateChange={onDateChange}
+            onAuditorChange={onAuditorChange}
+            onZoneChange={onZoneChange}
+            onMatrizToggle={onMatrizToggle}
+            onActiveToggle={onActiveToggle}
+            onRowClick={onRowClick}
+            dateRange={dateRange}
+            handleDeletePlanning={handleDeletePlanning}
+            localPlanningData={localPlanningData}
+            savedPlanningData={savedPlanningData}
+            selectedMonth={selectedMonth}
+            hasSubsidiaries={hasSubsidiaries}
+            isExpanded={isExpanded}
+            onToggleExpand={() => onToggleGroup(convenio)}
+          />
+        )}
+
+        {/* Subsidiary Rows */}
+        {isExpanded &&
+          group.subsidiaries.map((location) => (
+            <SubsidiaryRow
+              key={location.id}
+              location={location}
+              selectedAuditor={
+                localPlanningData[location.id]?.[selectedMonth]?.auditor_id
+              }
+              selectedDate={
+                localPlanningData[location.id]?.[selectedMonth]?.audit_date
+              }
+              auditors={auditors}
+              onDateChange={onDateChange}
+              onAuditorChange={onAuditorChange}
+              onZoneChange={onZoneChange}
+              onMatrizToggle={onMatrizToggle}
+              onActiveToggle={onActiveToggle}
+              onRowClick={onRowClick}
+              dateRange={dateRange}
+              handleDeletePlanning={handleDeletePlanning}
+              localPlanningData={localPlanningData}
+              savedPlanningData={savedPlanningData}
+              selectedMonth={selectedMonth}
+            />
+          ))}
+      </>
+    );
+  }
+);
 
 // Memoize the PlanningTable component
 const PlanningTable = React.memo(
@@ -421,6 +886,8 @@ const PlanningTable = React.memo(
     onRowClick,
     handleDeletePlanning,
     filters,
+    expandedGroups,
+    onToggleGroup,
   }) => {
     // Memoize the date range for the current month
     const dateRange = useMemo(() => {
@@ -488,6 +955,11 @@ const PlanningTable = React.memo(
       selectedMonth,
     ]);
 
+    // Group filtered locations by convenio
+    const groupedLocations = useMemo(() => {
+      return groupLocationsByConvenio(filteredLocations);
+    }, [filteredLocations]);
+
     return (
       <Box overflowX="auto">
         <Table variant="simple" size="xs">
@@ -497,7 +969,7 @@ const PlanningTable = React.memo(
                 Cliente
               </Th>
               <Th py={1} fontSize="xs">
-                Convenio
+                Convenio / Dirección
               </Th>
               <Th py={1} fontSize="xs">
                 Zona
@@ -520,32 +992,100 @@ const PlanningTable = React.memo(
             </Tr>
           </Thead>
           <Tbody>
-            {filteredLocations.map((location) => (
-              <PlanningRow
-                key={location.id}
-                location={location}
-                selectedAuditor={
-                  localPlanningData[location.id]?.[selectedMonth]?.auditor_id
-                }
-                selectedDate={
-                  localPlanningData[location.id]?.[selectedMonth]?.audit_date
-                }
+            {Object.entries(groupedLocations).map(([convenio, group]) => (
+              <ConvenioGroup
+                key={convenio}
+                convenio={convenio}
+                group={group}
                 auditors={auditors}
+                localPlanningData={localPlanningData}
+                savedPlanningData={savedPlanningData}
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
                 onDateChange={onDateChange}
                 onAuditorChange={onAuditorChange}
                 onZoneChange={onZoneChange}
                 onMatrizToggle={onMatrizToggle}
                 onActiveToggle={onActiveToggle}
-                handleDeletePlanning={handleDeletePlanning}
                 onRowClick={onRowClick}
+                handleDeletePlanning={handleDeletePlanning}
                 dateRange={dateRange}
-                localPlanningData={localPlanningData}
-                savedPlanningData={savedPlanningData}
-                selectedMonth={selectedMonth}
+                expandedGroups={expandedGroups}
+                onToggleGroup={onToggleGroup}
               />
             ))}
           </Tbody>
         </Table>
+      </Box>
+    );
+  }
+);
+
+// Action Buttons Component
+const ActionButtons = React.memo(
+  ({
+    onClearFilters,
+    onExpandAll,
+    onCollapseAll,
+    onDownloadCSV,
+    onSaveAll,
+    isLoadingPlanning,
+  }) => {
+    return (
+      <Box py={1} mb={0}>
+        <HStack spacing={2} justify="flex-end">
+          <Button
+            leftIcon={<CloseIcon />}
+            variant="outline"
+            colorScheme="gray"
+            size="xs"
+            onClick={onClearFilters}
+            minW="80px"
+          >
+            Filtros
+          </Button>
+          <Button
+            leftIcon={<ChevronDownIcon />}
+            variant="outline"
+            colorScheme="blue"
+            size="xs"
+            onClick={onExpandAll}
+            minW="80px"
+          >
+            Expandir
+          </Button>
+          <Button
+            leftIcon={<ChevronUpIcon />}
+            variant="outline"
+            colorScheme="gray"
+            size="xs"
+            onClick={onCollapseAll}
+            minW="80px"
+          >
+            Contraer
+          </Button>
+          <Button
+            leftIcon={<DownloadIcon />}
+            variant="outline"
+            colorScheme="teal"
+            size="xs"
+            onClick={onDownloadCSV}
+            minW="80px"
+          >
+            Descargar
+          </Button>
+          <Button
+            leftIcon={<CheckIcon />}
+            variant="solid"
+            colorScheme="blue"
+            size="xs"
+            onClick={onSaveAll}
+            isDisabled={isLoadingPlanning}
+            minW="80px"
+          >
+            Guardar
+          </Button>
+        </HStack>
       </Box>
     );
   }
@@ -580,6 +1120,7 @@ export default function Planning() {
   const [localPlanningData, setLocalPlanningData] = useState({});
   const [savedPlanningData, setSavedPlanningData] = useState({});
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [expandedGroups, setExpandedGroups] = useState({});
   const [filters, setFilters] = useState({
     cliente: "",
     convenio: "",
@@ -594,6 +1135,85 @@ export default function Planning() {
     onClose: onDrawerClose,
   } = useDisclosure();
   const toast = useToast();
+
+  // Handle toggle expand/collapse for specific group
+  const handleToggleGroup = useCallback((convenio) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [convenio]: !prev[convenio],
+    }));
+  }, []);
+
+  // Handle expand all groups
+  const handleExpandAll = useCallback(() => {
+    const filteredLocations = locations.filter((location) => {
+      // Cliente filter
+      if (filters.cliente && location.cliente !== filters.cliente) {
+        return false;
+      }
+
+      // Convenio filter
+      if (filters.convenio && location.convenio !== filters.convenio) {
+        return false;
+      }
+
+      // Zona filter
+      if (filters.zona && location.zona !== filters.zona) {
+        return false;
+      }
+
+      // Auditor filter
+      if (filters.auditor) {
+        const assignedAuditor =
+          localPlanningData[location.id]?.[selectedMonth]?.auditor_id;
+        if (assignedAuditor !== filters.auditor) {
+          return false;
+        }
+      }
+
+      // Matriz filter
+      if (filters.matriz !== "") {
+        const isMatriz = filters.matriz === "true";
+        if (location.es_matriz !== isMatriz) {
+          return false;
+        }
+      }
+
+      // Activo filter
+      if (filters.activo !== "") {
+        const shouldBeActive = filters.activo === "true";
+        // Use same logic as in PlanningRow to determine if active
+        const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
+        const isActive = savedPlanning?.auditor_id
+          ? savedPlanning.was_active !== false
+          : location.is_active !== false;
+
+        if (isActive !== shouldBeActive) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    const groupedLocations = groupLocationsByConvenio(filteredLocations);
+    const allConvenios = Object.keys(groupedLocations);
+
+    const newExpandedState = {};
+    allConvenios.forEach((convenio) => {
+      // Only expand if the group has subsidiaries
+      if (groupedLocations[convenio].subsidiaries.length > 0) {
+        newExpandedState[convenio] = true;
+      }
+    });
+
+    setExpandedGroups(newExpandedState);
+  }, [locations, filters, localPlanningData, savedPlanningData, selectedMonth]);
+
+  // Handle collapse all groups
+  const handleCollapseAll = useCallback(() => {
+    setExpandedGroups({});
+  }, []);
 
   // CSV Download function
   const downloadFilteredDataAsCSV = useCallback(
@@ -676,59 +1296,6 @@ export default function Planning() {
     },
     []
   );
-
-  // Helper function to get filtered locations
-  const getFilteredLocations = useCallback(() => {
-    return locations.filter((location) => {
-      // Cliente filter
-      if (filters.cliente && location.cliente !== filters.cliente) {
-        return false;
-      }
-
-      // Convenio filter
-      if (filters.convenio && location.convenio !== filters.convenio) {
-        return false;
-      }
-
-      // Zona filter
-      if (filters.zona && location.zona !== filters.zona) {
-        return false;
-      }
-
-      // Auditor filter
-      if (filters.auditor) {
-        const assignedAuditor =
-          localPlanningData[location.id]?.[selectedMonth]?.auditor_id;
-        if (assignedAuditor !== filters.auditor) {
-          return false;
-        }
-      }
-
-      // Matriz filter
-      if (filters.matriz !== "") {
-        const isMatriz = filters.matriz === "true";
-        if (location.es_matriz !== isMatriz) {
-          return false;
-        }
-      }
-
-      // Activo filter
-      if (filters.activo !== "") {
-        const shouldBeActive = filters.activo === "true";
-        // Use same logic as in PlanningRow to determine if active
-        const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
-        const isActive = savedPlanning?.auditor_id
-          ? savedPlanning.was_active !== false
-          : location.is_active !== false;
-
-        if (isActive !== shouldBeActive) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [locations, filters, localPlanningData, savedPlanningData, selectedMonth]);
 
   // Handle filter changes
   const handleFilterChange = useCallback((filterType, value) => {
@@ -1373,37 +1940,9 @@ export default function Planning() {
         <Text fontSize="2xl" fontWeight="bold">
           Planificación de Visitas
         </Text>
-        <HStack spacing={2}>
-          <Button variant="outline" onClick={handleClearFilters} size="sm">
-            Limpiar Filtros
-          </Button>
-          <Button
-            colorScheme="teal"
-            onClick={() => {
-              const filteredLocations = getFilteredLocations();
-              downloadFilteredDataAsCSV(
-                filteredLocations,
-                localPlanningData,
-                savedPlanningData,
-                auditors,
-                selectedMonth
-              );
-            }}
-            size="sm"
-          >
-            Descargar CSV
-          </Button>
-          <Button
-            colorScheme="blue"
-            onClick={handleSaveAll}
-            isDisabled={isLoadingPlanning}
-          >
-            Guardar Cambios
-          </Button>
-        </HStack>
       </Flex>
 
-      <Flex direction="column" gap={4} mb={6}>
+      <Flex direction="column" gap={2} mb={6}>
         <Select
           value={selectedYear}
           onChange={(e) => setSelectedYear(parseInt(e.target.value))}
@@ -1443,6 +1982,74 @@ export default function Planning() {
           onFilterChange={handleFilterChange}
         />
 
+        {/* Action Buttons */}
+        <ActionButtons
+          onClearFilters={handleClearFilters}
+          onExpandAll={handleExpandAll}
+          onCollapseAll={handleCollapseAll}
+          onDownloadCSV={() => {
+            const filteredLocations = locations.filter((location) => {
+              // Cliente filter
+              if (filters.cliente && location.cliente !== filters.cliente) {
+                return false;
+              }
+
+              // Convenio filter
+              if (filters.convenio && location.convenio !== filters.convenio) {
+                return false;
+              }
+
+              // Zona filter
+              if (filters.zona && location.zona !== filters.zona) {
+                return false;
+              }
+
+              // Auditor filter
+              if (filters.auditor) {
+                const assignedAuditor =
+                  localPlanningData[location.id]?.[selectedMonth]?.auditor_id;
+                if (assignedAuditor !== filters.auditor) {
+                  return false;
+                }
+              }
+
+              // Matriz filter
+              if (filters.matriz !== "") {
+                const isMatriz = filters.matriz === "true";
+                if (location.es_matriz !== isMatriz) {
+                  return false;
+                }
+              }
+
+              // Activo filter
+              if (filters.activo !== "") {
+                const shouldBeActive = filters.activo === "true";
+                // Use same logic as in PlanningRow to determine if active
+                const savedPlanning =
+                  savedPlanningData[location.id]?.[selectedMonth];
+                const isActive = savedPlanning?.auditor_id
+                  ? savedPlanning.was_active !== false
+                  : location.is_active !== false;
+
+                if (isActive !== shouldBeActive) {
+                  return false;
+                }
+              }
+
+              return true;
+            });
+            downloadFilteredDataAsCSV(
+              filteredLocations,
+              localPlanningData,
+              savedPlanningData,
+              auditors,
+              selectedMonth
+            );
+          }}
+          onSaveAll={handleSaveAll}
+          isLoadingPlanning={isLoadingPlanning}
+        />
+
         {/* Single table instance that updates based on selected month */}
         <PlanningTable
           locations={locations}
@@ -1459,6 +2066,8 @@ export default function Planning() {
           onRowClick={handleRowClick}
           handleDeletePlanning={handleDeletePlanning}
           filters={filters}
+          expandedGroups={expandedGroups}
+          onToggleGroup={handleToggleGroup}
         />
       </Flex>
 

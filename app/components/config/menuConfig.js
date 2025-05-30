@@ -1,6 +1,11 @@
 import { FiHome, FiUsers, FiLogOut } from "react-icons/fi";
 import { CiUnlock } from "react-icons/ci";
-import { FaChartBar, FaCalendarAlt, FaUserTie } from "react-icons/fa";
+import {
+  FaChartBar,
+  FaCalendarAlt,
+  FaUserTie,
+  FaMapMarkerAlt,
+} from "react-icons/fa";
 import { BiRfid } from "react-icons/bi";
 
 export const menuLinks = [
@@ -45,6 +50,12 @@ export const menuLinks = [
     text: "Auditores",
     icon: FaUserTie,
     roles: ["admin", "rh", "direccion", "coordinador"],
+  },
+  {
+    href: "/locations-directory",
+    text: "Directorio de direcciones",
+    icon: FaMapMarkerAlt,
+    roles: ["admin", "coordinador"],
   },
 ];
 
