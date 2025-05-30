@@ -1,6 +1,6 @@
 import { FiHome, FiUsers, FiLogOut } from "react-icons/fi";
 import { CiUnlock } from "react-icons/ci";
-import { FaChartBar, FaCalendarAlt } from "react-icons/fa";
+import { FaChartBar, FaCalendarAlt, FaUserTie } from "react-icons/fa";
 import { BiRfid } from "react-icons/bi";
 
 export const menuLinks = [
@@ -39,6 +39,12 @@ export const menuLinks = [
     text: "Planificación",
     icon: FaCalendarAlt,
     roles: ["admin", "direccion"],
+  },
+  {
+    href: "/auditors",
+    text: "Auditores",
+    icon: FaUserTie,
+    roles: ["admin", "rh", "direccion", "coordinador"],
   },
 ];
 
