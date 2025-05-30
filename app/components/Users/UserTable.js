@@ -53,6 +53,8 @@ export function UserTable({
   const toast = useToast();
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
+  console.log(roles);
+
   const bgHover = useColorModeValue("gray.50", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
   const headerBg = useColorModeValue("gray.50", "gray.700");
@@ -186,6 +188,8 @@ export function UserTable({
   const filteredRoles = roles.filter((role) =>
     allowedRoles.includes(role.role_name.toUpperCase())
   );
+
+  console.log("allowedRoles", allowedRoles);
 
   return (
     <Box overflowX="auto" w="full">

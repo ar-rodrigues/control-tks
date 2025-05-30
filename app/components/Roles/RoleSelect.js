@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import CreatableSelect from 'react-select/creatable';
-import { fetchRoles, createRole, deleteRole } from '../../api/roles/roles';
+import { useState, useEffect } from "react";
+import CreatableSelect from "react-select/creatable";
+import { fetchRoles, createRole, deleteRole } from "../../api/roles/roles";
 
 export function RoleSelect({ value, onChange }) {
   const [options, setOptions] = useState([]);
@@ -8,7 +8,9 @@ export function RoleSelect({ value, onChange }) {
   useEffect(() => {
     const loadRoles = async () => {
       const roles = await fetchRoles();
-      setOptions(roles.map(role => ({ value: role.id, label: role.role_name })));
+      setOptions(
+        roles.map((role) => ({ value: role.id, label: role.role_name }))
+      );
     };
 
     loadRoles();
@@ -17,13 +19,15 @@ export function RoleSelect({ value, onChange }) {
   const handleCreate = async (inputValue) => {
     const newRole = await createRole(inputValue);
     const newOption = { value: newRole.id, label: newRole.role_name };
-    setOptions(prevOptions => [...prevOptions, newOption]);
+    setOptions((prevOptions) => [...prevOptions, newOption]);
     onChange(newOption);
   };
 
   const handleDelete = async (roleId) => {
     await deleteRole(roleId);
-    setOptions(prevOptions => prevOptions.filter(option => option.value !== roleId));
+    setOptions((prevOptions) =>
+      prevOptions.filter((option) => option.value !== roleId)
+    );
   };
 
   return (

@@ -18,11 +18,11 @@ export async function GET(request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const cp = searchParams.get("cp");
+  const address = searchParams.get("address");
 
-  if (!cp) {
+  if (!address) {
     return NextResponse.json(
-      { error: "Falta el parámetro 'cp' (código postal)" },
+      { error: "Falta el parámetro 'address' (dirección)" },
       { status: 400 }
     );
   }
@@ -37,8 +37,8 @@ export async function GET(request) {
 
     try {
       const nominatimResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(
-          cp
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          address
         )}&country=Mexico&format=json&limit=1`,
         {
           headers: {
@@ -72,7 +72,7 @@ export async function GET(request) {
     try {
       const tomtomResponse = await fetch(
         `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(
-          cp
+          address
         )}.json?countrySet=MX&limit=1&view=Unified&key=${
           process.env.TOMTOM_API_KEY
         }`,
@@ -99,7 +99,7 @@ export async function GET(request) {
 
     // If both fail, return not found
     return NextResponse.json(
-      { error: `No se encontraron coordenadas para el código postal: ${cp}` },
+      { error: `No se encontraron coordenadas para la dirección: ${address}` },
       { status: 404 }
     );
   } catch (error) {

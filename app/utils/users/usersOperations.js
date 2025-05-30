@@ -1,29 +1,35 @@
-'use server'
+"use server";
 import { createClient } from "../supabase/server";
 
-
 export async function createUser(email, password) {
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY);
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY
+  );
   return supabase.auth.admin.createUser({
-     email, 
-     password,
-     email_confirm: true,
-    });
+    email,
+    password,
+    email_confirm: true,
+  });
 }
 
 export async function insertProfile(userId, name, email, role) {
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
   return supabase
-    .from('profiles')
+    .from("profiles")
     .insert([{ id: userId, full_name: name, email, roles: role }])
     .select();
 }
 
 export async function getProfiles() {
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-  return supabase
-    .from('profiles')
-    .select(`
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+  return supabase.from("profiles").select(`
       id,
       full_name,
       email,
@@ -32,26 +38,56 @@ export async function getProfiles() {
     `);
 }
 
+export async function getUserProfile() {
+  const supabase = createClient();
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      throw new Error("Error fetching user profile");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    throw new Error("Error fetching user profile");
+  }
+}
 
 export const generateMagicLink = async (email) => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify?token=`, {
-    method: 'POST',
-    headers: {
-      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, // Use anon key for this request
-      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-    }),
-  });
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify?token=`,
+    {
+      method: "POST",
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, // Use anon key for this request
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+      }),
+    }
+  );
 
-  console.log('Magic link generated:', response)
+  console.log("Magic link generated:", response);
 
   if (!response.ok) {
     const errorData = await response.json();
-    console.error('Error generating magic link:', errorData);
-    throw new Error('Failed to generate magic link.');
+    console.error("Error generating magic link:", errorData);
+    throw new Error("Failed to generate magic link.");
   }
 
   const data = await response.json();

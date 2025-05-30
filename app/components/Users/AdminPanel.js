@@ -58,6 +58,8 @@ export function AdminPanel({ currentUserRole }) {
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   const toast = useToast();
 
+  //console.log(roles);
+
   useEffect(() => {
     fetchUsers()
       .then(setUsers)
