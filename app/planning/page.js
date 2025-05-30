@@ -40,11 +40,14 @@ import {
   VStack,
   HStack,
   Divider,
+  IconButton,
+  SimpleGrid,
 } from "@chakra-ui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import React from "react";
 import { getUserProfile } from "../utils/users/usersOperations";
+import { DeleteIcon } from "@chakra-ui/icons";
 
 const ZONES = ["Centro", "Sur", "Norte", "Occidente"];
 
@@ -58,6 +61,114 @@ const ZONE_COLORS = {
 const getZoneColor = (zone) => {
   return ZONE_COLORS[zone] || "gray";
 };
+
+// Filter Controls Component
+const FilterControls = React.memo(
+  ({ locations, auditors, filters, onFilterChange }) => {
+    // Get unique values for filter options
+    const clienteOptions = useMemo(() => {
+      const unique = [
+        ...new Set(locations.map((loc) => loc.cliente).filter(Boolean)),
+      ];
+      return unique.sort();
+    }, [locations]);
+
+    const convenioOptions = useMemo(() => {
+      const unique = [
+        ...new Set(locations.map((loc) => loc.convenio).filter(Boolean)),
+      ];
+      return unique.sort();
+    }, [locations]);
+
+    const zonaOptions = useMemo(() => {
+      const unique = [
+        ...new Set(locations.map((loc) => loc.zona).filter(Boolean)),
+      ];
+      return unique.sort();
+    }, [locations]);
+
+    return (
+      <Box p={4} bg="gray.50" borderRadius="md" mb={4}>
+        <Text fontSize="md" fontWeight="semibold" mb={3}>
+          Filtros
+        </Text>
+        <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={4}>
+          <Select
+            placeholder="Clientes"
+            value={filters.cliente}
+            onChange={(e) => onFilterChange("cliente", e.target.value)}
+            size="sm"
+          >
+            {clienteOptions.map((cliente) => (
+              <option key={cliente} value={cliente}>
+                {cliente}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            placeholder="Convenios"
+            value={filters.convenio}
+            onChange={(e) => onFilterChange("convenio", e.target.value)}
+            size="sm"
+          >
+            {convenioOptions.map((convenio) => (
+              <option key={convenio} value={convenio}>
+                {convenio}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            placeholder="Todas las zonas"
+            value={filters.zona}
+            onChange={(e) => onFilterChange("zona", e.target.value)}
+            size="sm"
+          >
+            {zonaOptions.map((zona) => (
+              <option key={zona} value={zona}>
+                {zona}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            placeholder="Auditores"
+            value={filters.auditor}
+            onChange={(e) => onFilterChange("auditor", e.target.value)}
+            size="sm"
+          >
+            {auditors.map((auditor) => (
+              <option key={auditor.id} value={auditor.id}>
+                {auditor.full_name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            placeholder="Matriz: Todos"
+            value={filters.matriz}
+            onChange={(e) => onFilterChange("matriz", e.target.value)}
+            size="sm"
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </Select>
+
+          <Select
+            placeholder="Activo: Todos"
+            value={filters.activo}
+            onChange={(e) => onFilterChange("activo", e.target.value)}
+            size="sm"
+          >
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </Select>
+        </SimpleGrid>
+      </Box>
+    );
+  }
+);
 
 // Memoize the ZoneSelect component
 const ZoneSelect = React.memo(({ value, onChange, id }) => {
@@ -93,71 +204,75 @@ const ZoneSelect = React.memo(({ value, onChange, id }) => {
 });
 
 // Memoize the AuditorSelect component
-const AuditorSelect = React.memo(({ value, onChange, id, auditors }) => {
-  // Group auditors by zone
-  const auditorsByZone = auditors.reduce((acc, auditor) => {
-    const zone = auditor.zone || "Sin zona";
-    if (!acc[zone]) {
-      acc[zone] = [];
-    }
-    acc[zone].push(auditor);
-    return acc;
-  }, {});
+const AuditorSelect = React.memo(
+  ({ value, onChange, id, auditors, isDisabled }) => {
+    // Group auditors by zone
+    const auditorsByZone = auditors.reduce((acc, auditor) => {
+      const zone = auditor.zone || "Sin zona";
+      if (!acc[zone]) {
+        acc[zone] = [];
+      }
+      acc[zone].push(auditor);
+      return acc;
+    }, {});
 
-  // Sort zones to put "Sin zona" last
-  const sortedZones = Object.keys(auditorsByZone).sort((a, b) => {
-    if (a === "Sin zona") return 1;
-    if (b === "Sin zona") return -1;
-    return a.localeCompare(b);
-  });
+    // Sort zones to put "Sin zona" last
+    const sortedZones = Object.keys(auditorsByZone).sort((a, b) => {
+      if (a === "Sin zona") return 1;
+      if (b === "Sin zona") return -1;
+      return a.localeCompare(b);
+    });
 
-  // Find the selected auditor to display their name
-  const selectedAuditor = auditors.find((a) => a.id === value);
+    // Find the selected auditor to display their name
+    const selectedAuditor = auditors.find((a) => a.id === value);
 
-  return (
-    <Menu>
-      <MenuButton
-        as={ChakraButton}
-        w="100%"
-        size="sm"
-        variant="outline"
-        fontSize="sm"
-      >
-        {selectedAuditor?.full_name || "Seleccionar auditor"}
-      </MenuButton>
-      <MenuList maxH="300px" overflowY="auto">
-        {sortedZones.map((zone) => (
-          <Box key={zone}>
-            <Text
-              px={3}
-              py={1}
-              fontSize="xs"
-              fontWeight="bold"
-              bg={`${getZoneColor(zone)}.100`}
-              color={`${getZoneColor(zone)}.700`}
-            >
-              {zone}
-            </Text>
-            {auditorsByZone[zone].map((auditor) => (
-              <MenuItem
-                key={auditor.id}
-                onClick={() => onChange({ target: { value: auditor.id } })}
-                bg={`${getZoneColor(zone)}.50`}
-                _hover={{ bg: `${getZoneColor(zone)}.100` }}
-                color={`${getZoneColor(zone)}.700`}
-                fontSize="sm"
+    return (
+      <Menu>
+        <MenuButton
+          as={ChakraButton}
+          w="100%"
+          size="sm"
+          variant="outline"
+          fontSize="sm"
+          isDisabled={isDisabled}
+          opacity={isDisabled ? 0.6 : 1}
+        >
+          {selectedAuditor?.full_name || "Seleccionar auditor"}
+        </MenuButton>
+        <MenuList maxH="300px" overflowY="auto">
+          {sortedZones.map((zone) => (
+            <Box key={zone}>
+              <Text
+                px={3}
                 py={1}
-                pl={6}
+                fontSize="xs"
+                fontWeight="bold"
+                bg={`${getZoneColor(zone)}.100`}
+                color={`${getZoneColor(zone)}.700`}
               >
-                {auditor.full_name}
-              </MenuItem>
-            ))}
-          </Box>
-        ))}
-      </MenuList>
-    </Menu>
-  );
-});
+                {zone}
+              </Text>
+              {auditorsByZone[zone].map((auditor) => (
+                <MenuItem
+                  key={auditor.id}
+                  onClick={() => onChange({ target: { value: auditor.id } })}
+                  bg={`${getZoneColor(zone)}.50`}
+                  _hover={{ bg: `${getZoneColor(zone)}.100` }}
+                  color={`${getZoneColor(zone)}.700`}
+                  fontSize="sm"
+                  py={1}
+                  pl={6}
+                >
+                  {auditor.full_name}
+                </MenuItem>
+              ))}
+            </Box>
+          ))}
+        </MenuList>
+      </Menu>
+    );
+  }
+);
 
 // Memoize the PlanningRow component
 const PlanningRow = React.memo(
@@ -170,54 +285,104 @@ const PlanningRow = React.memo(
     onAuditorChange,
     onZoneChange,
     onMatrizToggle,
+    onActiveToggle,
     onRowClick,
     dateRange,
+    handleDeletePlanning,
+    localPlanningData,
+    savedPlanningData,
+    selectedMonth,
   }) => {
+    // Determine if location is active based on planning data or current status
+    const isActive = useMemo(() => {
+      // If there's saved planning data, use was_active from that
+      const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
+      if (savedPlanning?.auditor_id) {
+        return savedPlanning.was_active !== false; // Default to true if was_active not set
+      }
+      // Otherwise use current is_active status
+      return location.is_active !== false; // Default to true if is_active not set
+    }, [location, savedPlanningData, selectedMonth]);
+
+    const rowBg = isActive ? "white" : "gray.100";
+    const rowHoverBg = isActive ? "gray.50" : "gray.200";
+
     return (
       <Tr
-        _hover={{ bg: "gray.50" }}
+        bg={rowBg}
+        _hover={{ bg: rowHoverBg }}
         cursor="pointer"
         onClick={() => onRowClick(location)}
+        opacity={isActive ? 1 : 0.7}
       >
-        <Td py={2} maxW="150px" isTruncated>
+        <Td py={1} px={2} maxW="120px" isTruncated fontSize="xs">
           {location.cliente}
         </Td>
-        <Td py={2} maxW="150px" isTruncated>
+        <Td py={1} px={2} maxW="120px" isTruncated fontSize="xs">
           {location.convenio}
         </Td>
-        <Td py={2} w="120px" onClick={(e) => e.stopPropagation()}>
+        <Td py={1} px={2} w="100px" onClick={(e) => e.stopPropagation()}>
           <ZoneSelect
             value={location.zona}
             onChange={(e) => onZoneChange(location.id, e.target.value)}
             id={`zone-${location.id}`}
           />
         </Td>
-        <Td py={2} w="150px" onClick={(e) => e.stopPropagation()}>
+        <Td py={1} px={2} w="130px" onClick={(e) => e.stopPropagation()}>
           <AuditorSelect
             value={selectedAuditor}
             onChange={(e) => onAuditorChange(location.id, e.target.value)}
             id={`auditor-${location.id}`}
             auditors={auditors}
+            isDisabled={!isActive}
           />
         </Td>
-        <Td py={2} w="120px" onClick={(e) => e.stopPropagation()}>
+        <Td py={1} px={2} w="100px" onClick={(e) => e.stopPropagation()}>
           <DatePicker
             selected={selectedDate}
             onChange={(date) => onDateChange(location.id, date)}
             dateFormat="dd/MM/yyyy"
             className="chakra-input css-1kp110w"
-            placeholderText="Seleccionar fecha"
+            placeholderText="Fecha"
             minDate={dateRange.startDate}
             maxDate={dateRange.endDate}
+            disabled={!isActive}
+            style={{
+              opacity: isActive ? 1 : 0.6,
+              cursor: isActive ? "pointer" : "not-allowed",
+              fontSize: "12px",
+              padding: "4px 8px",
+              width: "95px",
+            }}
           />
         </Td>
-        <Td py={2} w="80px" onClick={(e) => e.stopPropagation()}>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
           <Switch
             id={`matriz-${location.id}`}
             isChecked={location.es_matriz}
             onChange={(e) => onMatrizToggle(location.id, e.target.checked)}
             size="sm"
           />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          <Switch
+            id={`active-${location.id}`}
+            isChecked={isActive}
+            onChange={(e) => onActiveToggle(location.id, e.target.checked)}
+            size="sm"
+            colorScheme="green"
+          />
+        </Td>
+        <Td py={1} px={2} w="60px" onClick={(e) => e.stopPropagation()}>
+          {localPlanningData[location.id]?.[selectedMonth]?.auditor_id && (
+            <IconButton
+              aria-label="Eliminar planificación"
+              icon={<DeleteIcon />}
+              size="xs"
+              colorScheme="red"
+              onClick={() => handleDeletePlanning(location.id)}
+            />
+          )}
         </Td>
       </Tr>
     );
@@ -245,13 +410,17 @@ const PlanningTable = React.memo(
     locations,
     auditors,
     localPlanningData,
+    savedPlanningData,
     selectedMonth,
     selectedYear,
     onDateChange,
     onAuditorChange,
     onZoneChange,
     onMatrizToggle,
+    onActiveToggle,
     onRowClick,
+    handleDeletePlanning,
+    filters,
   }) => {
     // Memoize the date range for the current month
     const dateRange = useMemo(() => {
@@ -260,21 +429,98 @@ const PlanningTable = React.memo(
       return { startDate, endDate };
     }, [selectedYear, selectedMonth]);
 
+    // Filter locations based on current filters
+    const filteredLocations = useMemo(() => {
+      return locations.filter((location) => {
+        // Cliente filter
+        if (filters.cliente && location.cliente !== filters.cliente) {
+          return false;
+        }
+
+        // Convenio filter
+        if (filters.convenio && location.convenio !== filters.convenio) {
+          return false;
+        }
+
+        // Zona filter
+        if (filters.zona && location.zona !== filters.zona) {
+          return false;
+        }
+
+        // Auditor filter
+        if (filters.auditor) {
+          const assignedAuditor =
+            localPlanningData[location.id]?.[selectedMonth]?.auditor_id;
+          if (assignedAuditor !== filters.auditor) {
+            return false;
+          }
+        }
+
+        // Matriz filter
+        if (filters.matriz !== "") {
+          const isMatriz = filters.matriz === "true";
+          if (location.es_matriz !== isMatriz) {
+            return false;
+          }
+        }
+
+        // Activo filter
+        if (filters.activo !== "") {
+          const shouldBeActive = filters.activo === "true";
+          // Use same logic as in PlanningRow to determine if active
+          const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
+          const isActive = savedPlanning?.auditor_id
+            ? savedPlanning.was_active !== false
+            : location.is_active !== false;
+
+          if (isActive !== shouldBeActive) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }, [
+      locations,
+      filters,
+      localPlanningData,
+      savedPlanningData,
+      selectedMonth,
+    ]);
+
     return (
       <Box overflowX="auto">
-        <Table variant="simple" size="sm">
+        <Table variant="simple" size="xs">
           <Thead>
             <Tr>
-              <Th py={2}>Cliente</Th>
-              <Th py={2}>Convenio</Th>
-              <Th py={2}>Zona</Th>
-              <Th py={2}>Auditor</Th>
-              <Th py={2}>Fecha</Th>
-              <Th py={2}>Matriz</Th>
+              <Th py={1} fontSize="xs">
+                Cliente
+              </Th>
+              <Th py={1} fontSize="xs">
+                Convenio
+              </Th>
+              <Th py={1} fontSize="xs">
+                Zona
+              </Th>
+              <Th py={1} fontSize="xs">
+                Auditor
+              </Th>
+              <Th py={1} fontSize="xs">
+                Fecha
+              </Th>
+              <Th py={1} fontSize="xs">
+                Matriz
+              </Th>
+              <Th py={1} fontSize="xs">
+                Activo
+              </Th>
+              <Th py={1} fontSize="xs">
+                Acciones
+              </Th>
             </Tr>
           </Thead>
           <Tbody>
-            {locations.map((location) => (
+            {filteredLocations.map((location) => (
               <PlanningRow
                 key={location.id}
                 location={location}
@@ -289,8 +535,13 @@ const PlanningTable = React.memo(
                 onAuditorChange={onAuditorChange}
                 onZoneChange={onZoneChange}
                 onMatrizToggle={onMatrizToggle}
+                onActiveToggle={onActiveToggle}
+                handleDeletePlanning={handleDeletePlanning}
                 onRowClick={onRowClick}
                 dateRange={dateRange}
+                localPlanningData={localPlanningData}
+                savedPlanningData={savedPlanningData}
+                selectedMonth={selectedMonth}
               />
             ))}
           </Tbody>
@@ -303,6 +554,10 @@ const PlanningTable = React.memo(
 export default function Planning() {
   const {
     locations,
+    updateLocation,
+    createLocation,
+    getLocationById,
+    getCoordinatesByPostalCode,
     isLoading: isLoadingLocations,
     error: errorLocations,
   } = useLocationsDirectory();
@@ -316,6 +571,7 @@ export default function Planning() {
     error: errorPlanning,
     getPlannings,
     createPlanning,
+    deletePlanning,
   } = usePlanning();
 
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -324,12 +580,175 @@ export default function Planning() {
   const [localPlanningData, setLocalPlanningData] = useState({});
   const [savedPlanningData, setSavedPlanningData] = useState({});
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [filters, setFilters] = useState({
+    cliente: "",
+    convenio: "",
+    zona: "",
+    auditor: "",
+    matriz: "",
+    activo: "",
+  });
   const {
     isOpen: isDrawerOpen,
     onOpen: onDrawerOpen,
     onClose: onDrawerClose,
   } = useDisclosure();
   const toast = useToast();
+
+  // CSV Download function
+  const downloadFilteredDataAsCSV = useCallback(
+    (
+      filteredLocations,
+      localPlanningData,
+      savedPlanningData,
+      auditors,
+      selectedMonth
+    ) => {
+      // Prepare CSV headers
+      const headers = [
+        "Cliente",
+        "Convenio",
+        "Zona",
+        "Auditor Asignado",
+        "Fecha Planificada",
+        "Es Matriz",
+        "Activo",
+        "Mes",
+      ];
+
+      // Prepare CSV data
+      const csvData = filteredLocations.map((location) => {
+        // Get planning data for this location and month
+        const planningData = localPlanningData[location.id]?.[selectedMonth];
+        const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
+
+        // Determine active status (same logic as in PlanningRow)
+        const isActive = savedPlanning?.auditor_id
+          ? savedPlanning.was_active !== false
+          : location.is_active !== false;
+
+        // Find assigned auditor
+        const assignedAuditor = planningData?.auditor_id
+          ? auditors.find((a) => a.id === planningData.auditor_id)?.full_name ||
+            ""
+          : "";
+
+        // Format date
+        const formattedDate = planningData?.audit_date
+          ? planningData.audit_date.toLocaleDateString("es-ES")
+          : "";
+
+        // Get month name
+        const monthName = MONTHS[selectedMonth];
+
+        return [
+          location.cliente || "",
+          location.convenio || "",
+          location.zona || "",
+          assignedAuditor,
+          formattedDate,
+          location.es_matriz ? "Sí" : "No",
+          isActive ? "Sí" : "No",
+          monthName,
+        ];
+      });
+
+      // Combine headers and data
+      const csvContent = [headers, ...csvData]
+        .map((row) => row.map((field) => `"${field}"`).join(","))
+        .join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `planificacion_${MONTHS[selectedMonth]}_${
+          new Date().toISOString().split("T")[0]
+        }.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    []
+  );
+
+  // Helper function to get filtered locations
+  const getFilteredLocations = useCallback(() => {
+    return locations.filter((location) => {
+      // Cliente filter
+      if (filters.cliente && location.cliente !== filters.cliente) {
+        return false;
+      }
+
+      // Convenio filter
+      if (filters.convenio && location.convenio !== filters.convenio) {
+        return false;
+      }
+
+      // Zona filter
+      if (filters.zona && location.zona !== filters.zona) {
+        return false;
+      }
+
+      // Auditor filter
+      if (filters.auditor) {
+        const assignedAuditor =
+          localPlanningData[location.id]?.[selectedMonth]?.auditor_id;
+        if (assignedAuditor !== filters.auditor) {
+          return false;
+        }
+      }
+
+      // Matriz filter
+      if (filters.matriz !== "") {
+        const isMatriz = filters.matriz === "true";
+        if (location.es_matriz !== isMatriz) {
+          return false;
+        }
+      }
+
+      // Activo filter
+      if (filters.activo !== "") {
+        const shouldBeActive = filters.activo === "true";
+        // Use same logic as in PlanningRow to determine if active
+        const savedPlanning = savedPlanningData[location.id]?.[selectedMonth];
+        const isActive = savedPlanning?.auditor_id
+          ? savedPlanning.was_active !== false
+          : location.is_active !== false;
+
+        if (isActive !== shouldBeActive) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [locations, filters, localPlanningData, savedPlanningData, selectedMonth]);
+
+  // Handle filter changes
+  const handleFilterChange = useCallback((filterType, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [filterType]: value,
+    }));
+  }, []);
+
+  // Clear all filters
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      cliente: "",
+      convenio: "",
+      zona: "",
+      auditor: "",
+      matriz: "",
+      activo: "",
+    });
+  }, []);
 
   // Get current user's ID on component mount
   useEffect(() => {
@@ -370,8 +789,10 @@ export default function Planning() {
           acc[plan.location_id] = {
             ...acc[plan.location_id],
             [new Date(plan.audit_date).getMonth()]: {
+              id: plan.id,
               auditor_id: plan.auditor_id,
               audit_date: new Date(plan.audit_date),
+              was_active: plan.was_active,
             },
           };
           return acc;
@@ -395,10 +816,75 @@ export default function Planning() {
     }
   }, [selectedYear, isLoadingLocations, isLoadingAuditors]);
 
-  // Memoize the years array
-  const years = useMemo(
-    () => Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i),
-    []
+  //handler to delete a planning entry
+  const handleDeletePlanning = useCallback(
+    async (locationId) => {
+      try {
+        // Check if the entry exists in savedPlanningData
+        const isSaved =
+          savedPlanningData[locationId]?.[selectedMonth]?.auditor_id;
+        const planningId = savedPlanningData[locationId]?.[selectedMonth]?.id;
+
+        if (isSaved && planningId) {
+          // If it's saved in the database, delete it using the planning UUID
+          const deletedPlanning = await deletePlanning(planningId);
+          if (!deletedPlanning) {
+            toast({
+              title: "Error",
+              description: "No se pudo eliminar la planificación",
+              status: "error",
+              duration: 3000,
+              isClosable: true,
+            });
+            return;
+          }
+        }
+
+        // Update local state after successful deletion
+        setLocalPlanningData((prev) => {
+          const newData = { ...prev };
+          if (newData[locationId]) {
+            delete newData[locationId][selectedMonth];
+            // If no more months have data, remove the location entirely
+            if (Object.keys(newData[locationId]).length === 0) {
+              delete newData[locationId];
+            }
+          }
+          return newData;
+        });
+
+        // Update saved data as well
+        setSavedPlanningData((prev) => {
+          const newData = { ...prev };
+          if (newData[locationId]) {
+            delete newData[locationId][selectedMonth];
+            // If no more months have data, remove the location entirely
+            if (Object.keys(newData[locationId]).length === 0) {
+              delete newData[locationId];
+            }
+          }
+          return newData;
+        });
+
+        toast({
+          title: "Planificación eliminada",
+          description: "La planificación se ha eliminado correctamente",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (error) {
+        console.error("Error deleting planning:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar la planificación",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    },
+    [selectedMonth, deletePlanning, toast, savedPlanningData]
   );
 
   // Handlers for local state changes
@@ -437,13 +923,37 @@ export default function Planning() {
   const handleZoneChange = useCallback(
     async (locationId, zone) => {
       try {
-        const location = locations.find((loc) => loc.id === locationId);
-        if (!location) return;
+        if (!locationId) {
+          toast({
+            title: "Error",
+            description: "No se pudo identificar la ubicación",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
 
-        await updateLocation(locationId, {
+        const location = locations.find((loc) => loc.id === locationId);
+        if (!location) {
+          toast({
+            title: "Error",
+            description: "Ubicación no encontrada",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        const updatedLocation = await updateLocation(locationId, {
           ...location,
           zona: zone,
         });
+
+        if (!updatedLocation) {
+          throw new Error("Failed to update location");
+        }
 
         toast({
           title: "Zona actualizada",
@@ -453,16 +963,17 @@ export default function Planning() {
           isClosable: true,
         });
       } catch (error) {
+        console.error("Error updating zone:", error);
         toast({
           title: "Error",
-          description: "No se pudo actualizar la zona",
+          description: error.message || "No se pudo actualizar la zona",
           status: "error",
           duration: 3000,
           isClosable: true,
         });
       }
     },
-    [locations]
+    [locations, toast]
   );
 
   const handleMatrizToggle = useCallback(
@@ -496,6 +1007,40 @@ export default function Planning() {
     [locations]
   );
 
+  // Handle active status toggle
+  const handleActiveToggle = useCallback(
+    async (locationId, isActive) => {
+      try {
+        const location = locations.find((loc) => loc.id === locationId);
+        if (!location) return;
+
+        await updateLocation(locationId, {
+          ...location,
+          is_active: isActive,
+        });
+
+        toast({
+          title: "Estado de actividad actualizado",
+          description: `La ubicación ha sido ${
+            isActive ? "activada" : "desactivada"
+          }`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el estado de actividad",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    },
+    [locations, toast]
+  );
+
   // Save all changes
   const handleSaveAll = useCallback(async () => {
     if (!currentUserId) {
@@ -515,6 +1060,10 @@ export default function Planning() {
       Object.entries(localPlanningData).forEach(([locationId, months]) => {
         Object.entries(months).forEach(([month, data]) => {
           if (data.auditor_id && data.audit_date) {
+            // Find the current location to get its is_active status
+            const location = locations.find((loc) => loc.id === locationId);
+            const currentIsActive = location?.is_active !== false; // Default to true
+
             // Convert date to Mexico City timezone
             const mexicoCityDate = new Date(
               data.audit_date.toLocaleString("en-US", {
@@ -527,6 +1076,7 @@ export default function Planning() {
               auditor_id: data.auditor_id,
               audit_date: mexicoCityDate.toISOString(),
               created_by: currentUserId,
+              was_active: currentIsActive, // Store current is_active as was_active
             });
           }
         });
@@ -535,8 +1085,19 @@ export default function Planning() {
       // Save all changes
       await Promise.all(changes.map((plan) => createPlanning(plan)));
 
-      // Update saved data
-      setSavedPlanningData(localPlanningData);
+      // Update saved data to include was_active
+      const updatedSavedData = { ...localPlanningData };
+      Object.entries(updatedSavedData).forEach(([locationId, months]) => {
+        Object.entries(months).forEach(([month, data]) => {
+          if (data.auditor_id && data.audit_date) {
+            const location = locations.find((loc) => loc.id === locationId);
+            updatedSavedData[locationId][month].was_active =
+              location?.is_active !== false;
+          }
+        });
+      });
+
+      setSavedPlanningData(updatedSavedData);
 
       toast({
         title: "Planificación guardada",
@@ -555,7 +1116,7 @@ export default function Planning() {
         isClosable: true,
       });
     }
-  }, [localPlanningData, currentUserId]);
+  }, [localPlanningData, currentUserId, locations, toast]);
 
   // Function to get the last assigned auditor for a location
   const getLastAssignedAuditor = useCallback(
@@ -648,6 +1209,16 @@ export default function Planning() {
                       }
                     >
                       {selectedLocation.es_matriz ? "Sí" : "No"}
+                    </Badge>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Activo:</Text>
+                    <Badge
+                      colorScheme={
+                        selectedLocation.is_active !== false ? "green" : "red"
+                      }
+                    >
+                      {selectedLocation.is_active !== false ? "Sí" : "No"}
                     </Badge>
                   </HStack>
                 </VStack>
@@ -802,13 +1373,34 @@ export default function Planning() {
         <Text fontSize="2xl" fontWeight="bold">
           Planificación de Visitas
         </Text>
-        <Button
-          colorScheme="blue"
-          onClick={handleSaveAll}
-          isDisabled={isLoadingPlanning}
-        >
-          Guardar Cambios
-        </Button>
+        <HStack spacing={2}>
+          <Button variant="outline" onClick={handleClearFilters} size="sm">
+            Limpiar Filtros
+          </Button>
+          <Button
+            colorScheme="teal"
+            onClick={() => {
+              const filteredLocations = getFilteredLocations();
+              downloadFilteredDataAsCSV(
+                filteredLocations,
+                localPlanningData,
+                savedPlanningData,
+                auditors,
+                selectedMonth
+              );
+            }}
+            size="sm"
+          >
+            Descargar CSV
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleSaveAll}
+            isDisabled={isLoadingPlanning}
+          >
+            Guardar Cambios
+          </Button>
+        </HStack>
       </Flex>
 
       <Flex direction="column" gap={4} mb={6}>
@@ -818,7 +1410,10 @@ export default function Planning() {
           w="200px"
           size="sm"
         >
-          {years.map((year) => (
+          {Array.from(
+            { length: 5 },
+            (_, i) => new Date().getFullYear() - 2 + i
+          ).map((year) => (
             <option key={year} value={year}>
               {year}
             </option>
@@ -840,18 +1435,30 @@ export default function Planning() {
           </TabList>
         </Tabs>
 
+        {/* Filter Controls */}
+        <FilterControls
+          locations={locations}
+          auditors={auditors}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+        />
+
         {/* Single table instance that updates based on selected month */}
         <PlanningTable
           locations={locations}
           auditors={auditors}
           localPlanningData={localPlanningData}
+          savedPlanningData={savedPlanningData}
           selectedMonth={selectedMonth}
           selectedYear={selectedYear}
           onDateChange={handleDateChange}
           onAuditorChange={handleAuditorChange}
           onZoneChange={handleZoneChange}
           onMatrizToggle={handleMatrizToggle}
+          onActiveToggle={handleActiveToggle}
           onRowClick={handleRowClick}
+          handleDeletePlanning={handleDeletePlanning}
+          filters={filters}
         />
       </Flex>
 
