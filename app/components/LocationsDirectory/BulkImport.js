@@ -43,6 +43,8 @@ export default function BulkImport({ onImportComplete }) {
   const [validationErrors, setValidationErrors] = useState([]);
   const toast = useToast();
 
+  const zonaOptions = ["Norte", "Sur", "Centro", "Occidente"];
+
   const downloadTemplate = () => {
     const headers = [
       "cliente",
@@ -52,9 +54,28 @@ export default function BulkImport({ onImportComplete }) {
       "ciudad",
       "estado",
       "cp",
+      "zona",
       "es_matriz",
+      "is_active",
+      "location_coordinates",
     ];
-    const csvContent = headers.join(",") + "\n";
+
+    // Add example row
+    const exampleRow = [
+      "Banorte",
+      "18641716",
+      "AUTOMOVILES TECNOLÓGICO, S.A. DE C.V.",
+      "AV. LAZARO CARDENAS 1815-C",
+      "Monterrey",
+      "Nuevo León",
+      "64754",
+      "Norte",
+      "false",
+      "true",
+      '{"lat": 25.6714, "lon": -100.309}',
+    ];
+
+    const csvContent = headers.join(",") + "\n" + exampleRow.join(",") + "\n";
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -74,14 +95,47 @@ export default function BulkImport({ onImportComplete }) {
     return newObj;
   };
 
-  // Helper to parse es_matriz values
-  const parseEsMatriz = (value) => {
+  // Helper to parse boolean values (es_matriz and is_active)
+  const parseBoolean = (value) => {
     if (typeof value === "boolean") return value;
     if (typeof value !== "string") return false;
     const val = value.trim().toLowerCase();
-    if (val === "true" || val === "si") return true;
-    if (val === "false" || val === "no") return false;
-    return false; // Default if unrecognized
+    return ["true", "si", "yes", "1"].includes(val);
+  };
+
+  // Helper to parse coordinates
+  const parseCoordinates = (value) => {
+    if (!value || value.trim() === "") return null;
+
+    try {
+      // If it's already an object
+      if (typeof value === "object" && value.lat && value.lon) {
+        return { lat: parseFloat(value.lat), lon: parseFloat(value.lon) };
+      }
+
+      // If it's a JSON string
+      if (typeof value === "string") {
+        const coords = JSON.parse(value);
+        if (coords.lat && coords.lon) {
+          return { lat: parseFloat(coords.lat), lon: parseFloat(coords.lon) };
+        }
+      }
+    } catch (error) {
+      // Invalid JSON or format, return null
+    }
+
+    return null;
+  };
+
+  // Helper to validate CP (numbers only)
+  const validateCP = (cp) => {
+    const cpRegex = /^\d+$/;
+    return cpRegex.test(cp);
+  };
+
+  // Helper to validate zona
+  const validateZona = (zona) => {
+    return zonaOptions.includes(zona);
   };
 
   const requiredFields = [
@@ -92,6 +146,8 @@ export default function BulkImport({ onImportComplete }) {
     "ciudad",
     "estado",
     "cp",
+    "zona",
+    "is_active",
   ];
 
   const validateData = (locations) => {
@@ -99,11 +155,24 @@ export default function BulkImport({ onImportComplete }) {
     locations.forEach((location, index) => {
       const rowErrors = [];
       const normalized = normalizeKeys(location);
+
+      // Check required fields
       requiredFields.forEach((field) => {
-        if (!normalized[field]) {
+        if (!normalized[field] && normalized[field] !== false) {
           rowErrors.push(`Falta el campo ${field}`);
         }
       });
+
+      // Validate CP format
+      if (normalized["cp"] && !validateCP(normalized["cp"])) {
+        rowErrors.push("El CP debe contener solo números");
+      }
+
+      // Validate zona
+      if (normalized["zona"] && !validateZona(normalized["zona"])) {
+        rowErrors.push(`La zona debe ser una de: ${zonaOptions.join(", ")}`);
+      }
+
       if (rowErrors.length > 0) {
         errors.push({
           row: index + 2, // +2 because of 0-based index and header row
@@ -127,7 +196,12 @@ export default function BulkImport({ onImportComplete }) {
           ciudad: normalized["ciudad"] || "",
           estado: normalized["estado"] || "",
           cp: normalized["cp"] || "",
-          es_matriz: parseEsMatriz(normalized["es_matriz"]),
+          zona: normalized["zona"] || "",
+          es_matriz: parseBoolean(normalized["es_matriz"]),
+          is_active: parseBoolean(normalized["is_active"]),
+          location_coordinates: parseCoordinates(
+            normalized["location_coordinates"]
+          ),
         };
       });
     } else {
@@ -145,7 +219,12 @@ export default function BulkImport({ onImportComplete }) {
           ciudad: normalized["ciudad"] || "",
           estado: normalized["estado"] || "",
           cp: normalized["cp"] || "",
-          es_matriz: parseEsMatriz(normalized["es_matriz"]),
+          zona: normalized["zona"] || "",
+          es_matriz: parseBoolean(normalized["es_matriz"]),
+          is_active: parseBoolean(normalized["is_active"]),
+          location_coordinates: parseCoordinates(
+            normalized["location_coordinates"]
+          ),
         };
       });
     }
@@ -278,7 +357,7 @@ export default function BulkImport({ onImportComplete }) {
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
-        <ModalContent maxW="90vw">
+        <ModalContent maxW="95vw">
           <ModalHeader>Importar ubicaciones en masa</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
@@ -305,6 +384,27 @@ export default function BulkImport({ onImportComplete }) {
                   </Button>
                 </Box>
               </Flex>
+
+              <Alert status="info" borderRadius="md">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Campos requeridos:</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    cliente, convenio, agencia, direccion, ciudad, estado, cp,
+                    zona, is_active
+                    <br />
+                    <strong>Zona:</strong> debe ser Norte, Sur, Centro o
+                    Occidente
+                    <br />
+                    <strong>CP:</strong> solo números
+                    <br />
+                    <strong>Booleanos:</strong> true/false, si/no, yes/no
+                    <br />
+                    <strong>Coordenadas:</strong> formato JSON{" "}
+                    {`{"lat": 25.6714, "lon": -100.309}`} (opcional)
+                  </AlertDescription>
+                </Box>
+              </Alert>
 
               <Tabs>
                 <TabList>
@@ -340,8 +440,7 @@ export default function BulkImport({ onImportComplete }) {
                     <VStack spacing={4}>
                       <Text fontSize="sm" color="gray.600">
                         Pega tus datos CSV aquí. Asegúrate de que la primera
-                        fila contenga los encabezados: cliente, convenio,
-                        agencia, direccion, ciudad, estado, cp
+                        fila contenga los encabezados requeridos.
                       </Text>
                       <Textarea
                         value={csvData}
@@ -385,7 +484,10 @@ export default function BulkImport({ onImportComplete }) {
                         <Th>Ciudad</Th>
                         <Th>Estado</Th>
                         <Th>CP</Th>
+                        <Th>Zona</Th>
                         <Th>Es Matriz</Th>
+                        <Th>Activo</Th>
+                        <Th>Coordenadas</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
@@ -397,8 +499,48 @@ export default function BulkImport({ onImportComplete }) {
                           <Td>{row.direccion}</Td>
                           <Td>{row.ciudad}</Td>
                           <Td>{row.estado}</Td>
-                          <Td>{row.cp}</Td>
-                          <Td>{row.es_matriz ? "Sí" : "No"}</Td>
+                          <Td>
+                            <Text
+                              color={validateCP(row.cp) ? "inherit" : "red.500"}
+                            >
+                              {row.cp}
+                            </Text>
+                          </Td>
+                          <Td>
+                            <Badge
+                              colorScheme={
+                                validateZona(row.zona) ? "green" : "red"
+                              }
+                            >
+                              {row.zona}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            <Badge
+                              colorScheme={row.es_matriz ? "yellow" : "gray"}
+                            >
+                              {row.es_matriz ? "Sí" : "No"}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            <Badge
+                              colorScheme={row.is_active ? "green" : "red"}
+                            >
+                              {row.is_active ? "Sí" : "No"}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            {row.location_coordinates ? (
+                              <Text fontSize="xs" color="green.600">
+                                {row.location_coordinates.lat.toFixed(4)},{" "}
+                                {row.location_coordinates.lon.toFixed(4)}
+                              </Text>
+                            ) : (
+                              <Text fontSize="xs" color="gray.400">
+                                Sin coordenadas
+                              </Text>
+                            )}
+                          </Td>
                         </Tr>
                       ))}
                     </Tbody>

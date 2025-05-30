@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useUsersAuditors } from "../utils/hooks/useUsersAuditors";
 import { useLocation } from "../utils/hooks/useLocation";

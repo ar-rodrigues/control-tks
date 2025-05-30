@@ -30,20 +30,33 @@ import {
   Th,
   Td,
   Stack,
+  Select,
+  Switch,
+  HStack,
+  Spinner,
+  Alert,
+  AlertIcon,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { ChevronRightIcon, ArrowBackIcon } from "@chakra-ui/icons";
 import BulkImport from "./BulkImport";
+import { useLocation } from "../../utils/hooks/useLocation";
 
 export default function LocationsTable() {
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [selectedConvenio, setSelectedConvenio] = useState(null);
+  const [coordinates, setCoordinates] = useState(null);
+  const [cpValue, setCpValue] = useState("");
+  const [cpError, setCpError] = useState("");
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { getLocationByPostalCode, isLoading: coordLoading } = useLocation();
   const toast = useToast();
   const bgColor = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
+
+  const zonaOptions = ["Norte", "Sur", "Centro", "Occidente"];
 
   const fetchLocations = async () => {
     try {
@@ -64,6 +77,66 @@ export default function LocationsTable() {
   useEffect(() => {
     fetchLocations();
   }, []);
+
+  // Validation functions
+  const validateCP = (cp) => {
+    const cpRegex = /^\d+$/;
+    return cpRegex.test(cp);
+  };
+
+  const handleCPChange = (e) => {
+    const value = e.target.value;
+    setCpValue(value);
+    if (value && !validateCP(value)) {
+      setCpError("El CP debe contener solo números");
+    } else {
+      setCpError("");
+    }
+  };
+
+  const handleGetCoordinates = async () => {
+    if (!cpValue || !validateCP(cpValue)) {
+      toast({
+        title: "Error",
+        description: "Ingresa un CP válido (solo números)",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const result = await getLocationByPostalCode(cpValue);
+      if (result && result.lat && result.lon) {
+        const coords = { lat: result.lat, lon: result.lon };
+        setCoordinates(coords);
+        toast({
+          title: "Éxito",
+          description: "Coordenadas obtenidas correctamente",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudieron obtener las coordenadas para este CP",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al obtener las coordenadas",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   // Layer 1: Unique clientes
   const clientes = [...new Set(locations.map((loc) => loc.cliente))];
@@ -119,6 +192,19 @@ export default function LocationsTable() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+
+    const cp = formData.get("cp");
+    if (!validateCP(cp)) {
+      toast({
+        title: "Error",
+        description: "El CP debe contener solo números",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const locationData = {
       cliente: formData.get("cliente"),
       convenio: formData.get("convenio"),
@@ -126,7 +212,11 @@ export default function LocationsTable() {
       direccion: formData.get("direccion"),
       ciudad: formData.get("ciudad"),
       estado: formData.get("estado"),
-      cp: formData.get("cp"),
+      cp: cp,
+      zona: formData.get("zona"),
+      es_matriz: formData.get("es_matriz") === "on",
+      is_active: formData.get("is_active") === "on",
+      location_coordinates: coordinates,
     };
 
     try {
@@ -155,6 +245,10 @@ export default function LocationsTable() {
 
       onClose();
       fetchLocations();
+      // Reset form state
+      setCoordinates(null);
+      setCpValue("");
+      setCpError("");
     } catch (error) {
       toast({
         title: "Error",
@@ -170,11 +264,17 @@ export default function LocationsTable() {
 
   const handleEdit = (location) => {
     setSelectedLocation(location);
+    setCpValue(location.cp || "");
+    setCoordinates(location.location_coordinates || null);
+    setCpError("");
     onOpen();
   };
 
   const handleAdd = () => {
     setSelectedLocation(null);
+    setCoordinates(null);
+    setCpValue("");
+    setCpError("");
     onOpen();
   };
 
@@ -340,6 +440,27 @@ export default function LocationsTable() {
                   <Heading size="md" mb={2}>
                     {location.agencia}
                   </Heading>
+                  <HStack mb={2} wrap="wrap">
+                    <Badge
+                      colorScheme={
+                        location.zona === "Norte"
+                          ? "blue"
+                          : location.zona === "Sur"
+                          ? "green"
+                          : location.zona === "Centro"
+                          ? "purple"
+                          : "orange"
+                      }
+                    >
+                      {location.zona}
+                    </Badge>
+                    <Badge colorScheme={location.is_active ? "green" : "red"}>
+                      {location.is_active ? "Activo" : "Inactivo"}
+                    </Badge>
+                    {location.es_matriz && (
+                      <Badge colorScheme="yellow">Matriz</Badge>
+                    )}
+                  </HStack>
                   <Text fontSize="sm" color="gray.600" mb={1}>
                     <b>Cliente:</b> {location.cliente}
                   </Text>
@@ -355,9 +476,16 @@ export default function LocationsTable() {
                   <Text fontSize="sm" color="gray.600" mb={1}>
                     <b>Estado:</b> {location.estado}
                   </Text>
-                  <Text fontSize="sm" color="gray.600" mb={2}>
+                  <Text fontSize="sm" color="gray.600" mb={1}>
                     <b>CP:</b> {location.cp}
                   </Text>
+                  {location.location_coordinates && (
+                    <Text fontSize="sm" color="gray.600" mb={2}>
+                      <b>Coordenadas:</b> Lat:{" "}
+                      {location.location_coordinates.lat}, Lon:{" "}
+                      {location.location_coordinates.lon}
+                    </Text>
+                  )}
                   <Box
                     display="flex"
                     flexDirection={{ base: "column", sm: "row" }}
@@ -391,7 +519,7 @@ export default function LocationsTable() {
         </>
       )}
 
-      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
         <ModalOverlay />
         <ModalContent mx={2}>
           <ModalHeader>
@@ -454,12 +582,75 @@ export default function LocationsTable() {
                   />
                 </FormControl>
                 <FormControl isRequired>
+                  <FormLabel>Zona</FormLabel>
+                  <Select
+                    name="zona"
+                    defaultValue={selectedLocation?.zona || ""}
+                    placeholder="Selecciona una zona"
+                    w="full"
+                  >
+                    {zonaOptions.map((zona) => (
+                      <option key={zona} value={zona}>
+                        {zona}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl isRequired isInvalid={!!cpError}>
                   <FormLabel>CP</FormLabel>
                   <Input
                     name="cp"
-                    defaultValue={selectedLocation?.cp}
+                    value={cpValue}
+                    onChange={handleCPChange}
+                    placeholder="Solo números"
                     w="full"
                   />
+                  {cpError && (
+                    <Text color="red.500" fontSize="sm" mt={1}>
+                      {cpError}
+                    </Text>
+                  )}
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Coordenadas</FormLabel>
+                  <VStack spacing={2} align="stretch">
+                    <Button
+                      onClick={handleGetCoordinates}
+                      isLoading={coordLoading}
+                      loadingText="Obteniendo..."
+                      isDisabled={!cpValue || !!cpError}
+                      colorScheme="green"
+                      size="sm"
+                    >
+                      Obtener coordenadas por CP
+                    </Button>
+                    {coordinates && (
+                      <Alert status="success" borderRadius="md">
+                        <AlertIcon />
+                        <Text fontSize="sm">
+                          Lat: {coordinates.lat}, Lon: {coordinates.lon}
+                        </Text>
+                      </Alert>
+                    )}
+                  </VStack>
+                </FormControl>
+                <FormControl>
+                  <HStack justify="space-between">
+                    <FormLabel mb={0}>Es Matriz</FormLabel>
+                    <Switch
+                      name="es_matriz"
+                      defaultChecked={selectedLocation?.es_matriz || false}
+                    />
+                  </HStack>
+                </FormControl>
+                <FormControl>
+                  <HStack justify="space-between">
+                    <FormLabel mb={0}>Activo</FormLabel>
+                    <Switch
+                      name="is_active"
+                      defaultChecked={selectedLocation?.is_active ?? true}
+                    />
+                  </HStack>
                 </FormControl>
                 <Button type="submit" colorScheme="blue" w="full">
                   {selectedLocation ? "Actualizar" : "Crear"}
